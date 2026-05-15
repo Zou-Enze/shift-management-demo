@@ -15,9 +15,28 @@ export interface Skill {
   name: string;
 }
 
+export interface WorkloadTaskPreset {
+  skill_id: string;
+  start_time: string;
+  end_time: string;
+  required_count: number;
+}
+
+export interface WorkloadSmallPreset {
+  category_small_id: string;
+  tasks: WorkloadTaskPreset[];
+}
+
+export interface WorkloadLargePreset {
+  category_large_id: string;
+  small_categories: WorkloadSmallPreset[];
+}
+
 export interface Mode {
   id: string;
   name: string;
+  preset_categories?: WorkloadLargePreset[];
+  is_custom?: boolean;
 }
 
 export interface Employee {

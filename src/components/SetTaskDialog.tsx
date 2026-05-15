@@ -31,6 +31,7 @@ import SaveIcon from '@mui/icons-material/SaveOutlined';
 import DeleteIcon from '@mui/icons-material/DeleteOutline';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CloseIcon from '@mui/icons-material/Close';
+import BookmarkAddIcon from '@mui/icons-material/BookmarkAdd';
 import { db } from '../db/database';
 import { getCategorySmallColor } from '../constants/categoryColors';
 import type { Category, Skill, TaskRow, Mode } from '../types';
@@ -60,7 +61,6 @@ function uid(prefix: string): string {
 interface SetTaskDialogProps {
   open: boolean;
   onClose: () => void;
-  /** 反映後、親ページの対象日と同期（yyyy-mm-dd） */
   onApplied?: (dateIso: string) => void;
 }
 
@@ -72,7 +72,7 @@ export default function SetTaskDialog({ open, onClose, onApplied }: SetTaskDialo
 
   const [selectedLargeIds, setSelectedLargeIds] = useState<string[]>([]);
   const [taskConfig, setTaskConfig] = useState<TaskConfig>({});
-  const [taskModeId, setTaskModeId] = useState<string>('MODE-01');
+  const [taskModeId, setTaskModeId] = useState<string>('');
   const [taskTargetDateIso, setTaskTargetDateIso] = useState<string>(todayIsoDate());
 
   const [largeDialogOpen, setLargeDialogOpen] = useState(false);
@@ -87,67 +87,81 @@ export default function SetTaskDialog({ open, onClose, onApplied }: SetTaskDialo
 
   const [hydrated, setHydrated] = useState(false);
 
-  useEffect(() => {
-    if (!open) return;
-    setHydrated(false);
-    const defaultMode = modes?.find((m) => m.id === 'MODE-01') ?? modes?.[0];
-    setTaskModeId(defaultMode?.id ?? 'MODE-01');
-  }, [open, modes]);
-
-  useEffect(() => {
-    if (!open || hydrated) return;
-    if (!categories || !existingTaskRows) return;
-    if (existingTaskRows.length === 0) {
-      setTaskTargetDateIso(todayIsoDate());
-      setHydrated(true);
-      return;
-    }
-    const subNameMap = new Map<string, string>();
-    const subToLarge = new Map<string, string>();
-    categories.forEach((c) =>
-      c.sub_categories.forEach((sc) => {
-        subNameMap.set(sc.id, sc.name);
-        subToLarge.set(sc.id, c.id);
-      })
-    );
-
-    const cfg: TaskConfig = {};
-    const largeSet = new Set<string>();
-    existingTaskRows.forEach((row) => {
-      const largeId = row.category_large_id || subToLarge.get(row.category_small_id) || '';
-      if (!largeId) return;
-      largeSet.add(largeId);
-      if (!cfg[largeId]) cfg[largeId] = [];
-      let small = cfg[largeId].find((s) => s.category_small_id === row.category_small_id);
-      if (!small) {
-        small = {
-          category_small_id: row.category_small_id,
-          category_small_name: subNameMap.get(row.category_small_id) ?? row.category_small_id,
-          skills: [],
-        };
-        cfg[largeId].push(small);
-      }
-      small.skills.push({
-        id: row.id,
-        skill_id: row.skill_id,
-        start_time: row.start_time,
-        end_time: row.end_time,
-        task_name: row.task_name,
-        required_count: row.required_count,
-      });
-    });
-    setSelectedLargeIds(Array.from(largeSet));
-    setTaskConfig(cfg);
-    const td0 = existingTaskRows[0]?.task_date;
-    setTaskTargetDateIso(td0 && td0.includes('/') ? slashDateToIso(td0) : todayIsoDate());
-    setHydrated(true);
-  }, [categories, existingTaskRows, hydrated, open]);
+  const [saveDialogOpen, setSaveDialogOpen] = useState(false);
+  const [newWorkloadName, setNewWorkloadName] = useState('');
+  const [pendingReflect, setPendingReflect] = useState(false);
 
   const skillMap = useMemo(() => {
     const m = new Map<string, string>();
     (skills ?? []).forEach((s) => m.set(s.id, s.name));
     return m;
   }, [skills]);
+
+  const buildConfigFromWorkload = (workload: Mode) => {
+    if (!workload.preset_categories || !categories) return null;
+
+    const newSelectedLargeIds: string[] = [];
+    const newTaskConfig: TaskConfig = {};
+
+    workload.preset_categories.forEach((large) => {
+      newSelectedLargeIds.push(large.category_large_id);
+      const cat = categories.find((c) => c.id === large.category_large_id);
+
+      newTaskConfig[large.category_large_id] = large.small_categories.map((small) => {
+        const subCat = cat?.sub_categories.find((sc) => sc.id === small.category_small_id);
+        return {
+          category_small_id: small.category_small_id,
+          category_small_name: subCat?.name ?? small.category_small_id,
+          skills: small.tasks.map((task) => ({
+            id: uid('SK'),
+            skill_id: task.skill_id,
+            start_time: task.start_time,
+            end_time: task.end_time,
+            task_name: skillMap.get(task.skill_id) ?? task.skill_id,
+            required_count: task.required_count,
+          })),
+        };
+      });
+    });
+
+    return { newSelectedLargeIds, newTaskConfig };
+  };
+
+  useEffect(() => {
+    if (!open) return;
+    setHydrated(false);
+    const defaultMode = modes?.find((m) => m.id === 'WL-01') ?? modes?.[0];
+    setTaskModeId(defaultMode?.id ?? '');
+  }, [open, modes]);
+
+  useEffect(() => {
+    if (!open || hydrated) return;
+    if (!categories || !modes || !skills) return;
+
+    const defaultMode = modes.find((m) => m.id === 'WL-01') ?? modes[0];
+    if (defaultMode) {
+      const result = buildConfigFromWorkload(defaultMode);
+      if (result) {
+        setSelectedLargeIds(result.newSelectedLargeIds);
+        setTaskConfig(result.newTaskConfig);
+      }
+    }
+    const td0 = existingTaskRows?.[0]?.task_date;
+    setTaskTargetDateIso(td0 && td0.includes('/') ? slashDateToIso(td0) : todayIsoDate());
+    setHydrated(true);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [categories, hydrated, open, modes, skills]);
+
+  const handleModeChange = (modeId: string) => {
+    setTaskModeId(modeId);
+    const workload = modes?.find((m) => m.id === modeId);
+    if (!workload || !workload.preset_categories) return;
+    const result = buildConfigFromWorkload(workload);
+    if (result) {
+      setSelectedLargeIds(result.newSelectedLargeIds);
+      setTaskConfig(result.newTaskConfig);
+    }
+  };
 
   const availableLargeCategories = useMemo(
     () => (categories ?? []).filter((c) => !selectedLargeIds.includes(c.id)),
@@ -223,7 +237,7 @@ export default function SetTaskDialog({ open, onClose, onApplied }: SetTaskDialo
     }));
   };
 
-  const handleReflect = async () => {
+  const doReflect = async () => {
     const rows: TaskRow[] = [];
     Object.entries(taskConfig).forEach(([largeId, smalls]) => {
       smalls.forEach((small) => {
@@ -248,8 +262,51 @@ export default function SetTaskDialog({ open, onClose, onApplied }: SetTaskDialo
     onClose();
   };
 
+  const handleReflect = () => {
+    setPendingReflect(true);
+    setNewWorkloadName('');
+    setSaveDialogOpen(true);
+  };
+
+  const handleSaveAndReflect = async () => {
+    if (newWorkloadName.trim()) {
+      const preset = selectedLargeIds.map((largeId) => ({
+        category_large_id: largeId,
+        small_categories: (taskConfig[largeId] ?? []).map((small) => ({
+          category_small_id: small.category_small_id,
+          tasks: small.skills.map((sk) => ({
+            skill_id: sk.skill_id,
+            start_time: sk.start_time,
+            end_time: sk.end_time,
+            required_count: sk.required_count,
+          })),
+        })),
+      }));
+      await db.modes.add({
+        id: `WL-${Date.now()}`,
+        name: newWorkloadName.trim(),
+        preset_categories: preset,
+        is_custom: true,
+      });
+    }
+    setSaveDialogOpen(false);
+    setPendingReflect(false);
+    await doReflect();
+  };
+
+  const handleSkipAndReflect = async () => {
+    setSaveDialogOpen(false);
+    setPendingReflect(false);
+    await doReflect();
+  };
+
+  const handleCancelSave = () => {
+    setSaveDialogOpen(false);
+    setPendingReflect(false);
+  };
+
   const handleRequestClose = () => {
-    onClose();
+    if (!pendingReflect) onClose();
   };
 
   return (
@@ -312,17 +369,22 @@ export default function SetTaskDialog({ open, onClose, onApplied }: SetTaskDialo
                 justifyContent="space-between"
                 sx={{ mb: 4 }}
               >
-                <FormControl size="small" sx={{ minWidth: 160 }}>
-                  <InputLabel id="set-task-mode-label">モード</InputLabel>
+                <FormControl size="small" sx={{ minWidth: 200 }}>
+                  <InputLabel id="set-task-workload-label">作業量</InputLabel>
                   <Select
-                    labelId="set-task-mode-label"
-                    label="モード"
+                    labelId="set-task-workload-label"
+                    label="作業量"
                     value={taskModeId}
-                    onChange={(e) => setTaskModeId(String(e.target.value))}
+                    onChange={(e) => handleModeChange(String(e.target.value))}
                   >
                     {(modes ?? []).map((m) => (
                       <MenuItem key={m.id} value={m.id}>
-                        {m.name}
+                        <Stack direction="row" alignItems="center" spacing={1}>
+                          {m.is_custom && (
+                            <BookmarkAddIcon sx={{ fontSize: 16, color: 'primary.light', flexShrink: 0 }} />
+                          )}
+                          <span>{m.name}</span>
+                        </Stack>
                       </MenuItem>
                     ))}
                   </Select>
@@ -624,6 +686,15 @@ export default function SetTaskDialog({ open, onClose, onApplied }: SetTaskDialo
         onClose={() => setSkillDialogState(null)}
         onSubmit={(largeId, smallId, cfg) => addSkillConfig(largeId, smallId, cfg)}
       />
+
+      <SaveWorkloadDialog
+        open={saveDialogOpen}
+        value={newWorkloadName}
+        onChange={setNewWorkloadName}
+        onSave={handleSaveAndReflect}
+        onSkip={handleSkipAndReflect}
+        onCancel={handleCancelSave}
+      />
     </Dialog>
   );
 }
@@ -802,6 +873,68 @@ function SkillDialog({ state, skills, onClose, onSubmit }: SkillDialogProps) {
           }}
         >
           追加
+        </Button>
+      </DialogActions>
+    </Dialog>
+  );
+}
+
+interface SaveWorkloadDialogProps {
+  open: boolean;
+  value: string;
+  onChange: (v: string) => void;
+  onSave: () => void;
+  onSkip: () => void;
+  onCancel: () => void;
+}
+
+function SaveWorkloadDialog({ open, value, onChange, onSave, onSkip, onCancel }: SaveWorkloadDialogProps) {
+  return (
+    <Dialog open={open} onClose={onCancel} maxWidth="xs" fullWidth>
+      <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+        <BookmarkAddIcon sx={{ color: 'primary.main' }} />
+        作業量として保存
+      </DialogTitle>
+      <DialogContent dividers>
+        <Typography sx={{ fontSize: '14px', color: 'text.secondary', mb: 2 }}>
+          現在の設定内容を新しい「作業量」として保存できます。
+          名前を入力して「保存して反映」を選ぶと、次回からドロップダウンで選択できるようになります。
+        </Typography>
+        <TextField
+          label="作業量の名前"
+          size="small"
+          fullWidth
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder="例: 繁忙期特別、週末シフト など"
+          autoFocus
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && value.trim()) onSave();
+          }}
+        />
+      </DialogContent>
+      <DialogActions sx={{ flexDirection: 'column', gap: 1, p: 2 }}>
+        <Button
+          variant="contained"
+          fullWidth
+          startIcon={<BookmarkAddIcon />}
+          onClick={onSave}
+          disabled={!value.trim()}
+          sx={{ bgcolor: 'primary.main', color: '#fff', fontWeight: 700 }}
+        >
+          保存して反映
+        </Button>
+        <Button
+          variant="outlined"
+          fullWidth
+          startIcon={<CheckCircleIcon />}
+          onClick={onSkip}
+          sx={{ color: '#6B6400', borderColor: '#F2E300', bgcolor: '#FFFDE7' }}
+        >
+          保存せずに反映
+        </Button>
+        <Button fullWidth onClick={onCancel} sx={{ color: 'text.secondary' }}>
+          キャンセル
         </Button>
       </DialogActions>
     </Dialog>
