@@ -1,0 +1,213 @@
+{
+  "workloads": [
+    {
+      "id": "WL-01",
+      "name": "平常",
+      "preset_categories": [
+        {
+          "category_large_id": "CAT-01",
+          "small_categories": [
+            {
+              "category_small_id": "CAT-01-01",
+              "tasks": [
+                { "skill_id": "SKL-002", "start_time": "07:00", "end_time": "09:00", "required_count": 1 },
+                { "skill_id": "SKL-001", "start_time": "09:00", "end_time": "12:00", "required_count": 1 },
+                { "skill_id": "SKL-003", "start_time": "13:00", "end_time": "16:00", "required_count": 1 }
+              ]
+            },
+            {
+              "category_small_id": "CAT-01-02",
+              "tasks": [
+                { "skill_id": "SKL-002", "start_time": "06:00", "end_time": "08:00", "required_count": 1 },
+                { "skill_id": "SKL-001", "start_time": "08:00", "end_time": "11:00", "required_count": 1 },
+                { "skill_id": "SKL-003", "start_time": "11:00", "end_time": "14:00", "required_count": 1 }
+              ]
+            },
+            {
+              "category_small_id": "CAT-01-03",
+              "tasks": [
+                { "skill_id": "SKL-002", "start_time": "07:00", "end_time": "10:00", "required_count": 1 },
+                { "skill_id": "SKL-001", "start_time": "10:00", "end_time": "13:00", "required_count": 1 },
+                { "skill_id": "SKL-003", "start_time": "14:00", "end_time": "17:00", "required_count": 1 }
+              ]
+            },
+            {
+              "category_small_id": "CAT-01-04",
+              "tasks": [
+                { "skill_id": "SKL-001", "start_time": "08:00", "end_time": "11:00", "required_count": 1 },
+                { "skill_id": "SKL-003", "start_time": "13:00", "end_time": "16:00", "required_count": 1 }
+              ]
+            }
+          ]
+        },
+        {
+          "category_large_id": "CAT-02",
+          "small_categories": [
+            {
+              "category_small_id": "CAT-02-01",
+              "tasks": [
+                { "skill_id": "SKL-002", "start_time": "08:00", "end_time": "10:00", "required_count": 1 },
+                { "skill_id": "SKL-001", "start_time": "10:00", "end_time": "13:00", "required_count": 1 }
+              ]
+            },
+            {
+              "category_small_id": "CAT-02-02",
+              "tasks": [
+                { "skill_id": "SKL-002", "start_time": "08:00", "end_time": "11:00", "required_count": 1 },
+                { "skill_id": "SKL-003", "start_time": "11:00", "end_time": "14:00", "required_count": 1 }
+              ]
+            },
+            {
+              "category_small_id": "CAT-02-03",
+              "tasks": [
+                { "skill_id": "SKL-001", "start_time": "13:00", "end_time": "16:00", "required_count": 1 },
+                { "skill_id": "SKL-003", "start_time": "16:00", "end_time": "18:00", "required_count": 1 }
+              ]
+            }
+          ]
+        },
+        {
+          "category_large_id": "CAT-03",
+          "small_categories": [
+            {
+              "category_small_id": "CAT-03-01",
+              "tasks": [
+                { "skill_id": "SKL-001", "start_time": "04:00", "end_time": "07:00", "required_count": 1 }
+              ]
+            },
+            {
+              "category_small_id": "CAT-03-02",
+              "tasks": [
+                { "skill_id": "SKL-001", "start_time": "08:00", "end_time": "10:00", "required_count": 1 },
+                { "skill_id": "SKL-003", "start_time": "10:00", "end_time": "12:00", "required_count": 1 }
+              ]
+            },
+            {
+              "category_small_id": "CAT-03-03",
+              "tasks": [
+                { "skill_id": "SKL-001", "start_time": "12:00", "end_time": "14:00", "required_count": 1 },
+                { "skill_id": "SKL-003", "start_time": "14:00", "end_time": "16:00", "required_count": 1 }
+              ]
+            },
+            {
+              "category_small_id": "CAT-03-04",
+              "tasks": [
+                { "skill_id": "SKL-001", "start_time": "16:00", "end_time": "18:00", "required_count": 1 },
+                { "skill_id": "SKL-003", "start_time": "18:00", "end_time": "20:00", "required_count": 1 }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "WL-02",
+      "name": "繁忙",
+      "preset_categories": [
+        {
+          "category_large_id": "CAT-01",
+          "small_categories": [
+            {
+              "category_small_id": "CAT-01-01",
+              "tasks": [
+                { "skill_id": "SKL-002", "start_time": "05:00", "end_time": "09:00", "required_count": 2 },
+                { "skill_id": "SKL-001", "start_time": "08:00", "end_time": "13:00", "required_count": 3 },
+                { "skill_id": "SKL-001", "start_time": "13:00", "end_time": "17:00", "required_count": 2 },
+                { "skill_id": "SKL-003", "start_time": "14:00", "end_time": "19:00", "required_count": 2 }
+              ]
+            },
+            {
+              "category_small_id": "CAT-01-02",
+              "tasks": [
+                { "skill_id": "SKL-002", "start_time": "05:00", "end_time": "08:00", "required_count": 2 },
+                { "skill_id": "SKL-001", "start_time": "07:00", "end_time": "12:00", "required_count": 2 },
+                { "skill_id": "SKL-003", "start_time": "11:00", "end_time": "15:00", "required_count": 2 },
+                { "skill_id": "SKL-003", "start_time": "15:00", "end_time": "18:00", "required_count": 1 }
+              ]
+            },
+            {
+              "category_small_id": "CAT-01-03",
+              "tasks": [
+                { "skill_id": "SKL-002", "start_time": "06:00", "end_time": "10:00", "required_count": 2 },
+                { "skill_id": "SKL-001", "start_time": "09:00", "end_time": "14:00", "required_count": 3 },
+                { "skill_id": "SKL-003", "start_time": "13:00", "end_time": "18:00", "required_count": 2 },
+                { "skill_id": "SKL-003", "start_time": "18:00", "end_time": "21:00", "required_count": 1 }
+              ]
+            },
+            {
+              "category_small_id": "CAT-01-04",
+              "tasks": [
+                { "skill_id": "SKL-001", "start_time": "07:00", "end_time": "12:00", "required_count": 2 },
+                { "skill_id": "SKL-003", "start_time": "10:00", "end_time": "14:00", "required_count": 2 },
+                { "skill_id": "SKL-001", "start_time": "12:00", "end_time": "17:00", "required_count": 2 },
+                { "skill_id": "SKL-003", "start_time": "15:00", "end_time": "19:00", "required_count": 2 }
+              ]
+            }
+          ]
+        },
+        {
+          "category_large_id": "CAT-02",
+          "small_categories": [
+            {
+              "category_small_id": "CAT-02-01",
+              "tasks": [
+                { "skill_id": "SKL-002", "start_time": "07:00", "end_time": "11:00", "required_count": 2 },
+                { "skill_id": "SKL-001", "start_time": "09:00", "end_time": "14:00", "required_count": 3 },
+                { "skill_id": "SKL-001", "start_time": "14:00", "end_time": "18:00", "required_count": 2 }
+              ]
+            },
+            {
+              "category_small_id": "CAT-02-02",
+              "tasks": [
+                { "skill_id": "SKL-002", "start_time": "07:00", "end_time": "12:00", "required_count": 2 },
+                { "skill_id": "SKL-003", "start_time": "10:00", "end_time": "15:00", "required_count": 2 },
+                { "skill_id": "SKL-003", "start_time": "15:00", "end_time": "19:00", "required_count": 2 }
+              ]
+            },
+            {
+              "category_small_id": "CAT-02-03",
+              "tasks": [
+                { "skill_id": "SKL-001", "start_time": "10:00", "end_time": "15:00", "required_count": 2 },
+                { "skill_id": "SKL-003", "start_time": "13:00", "end_time": "18:00", "required_count": 3 },
+                { "skill_id": "SKL-003", "start_time": "18:00", "end_time": "21:00", "required_count": 2 }
+              ]
+            }
+          ]
+        },
+        {
+          "category_large_id": "CAT-03",
+          "small_categories": [
+            {
+              "category_small_id": "CAT-03-01",
+              "tasks": [
+                { "skill_id": "SKL-001", "start_time": "02:00", "end_time": "06:00", "required_count": 2 },
+                { "skill_id": "SKL-003", "start_time": "04:00", "end_time": "08:00", "required_count": 2 }
+              ]
+            },
+            {
+              "category_small_id": "CAT-03-02",
+              "tasks": [
+                { "skill_id": "SKL-001", "start_time": "07:00", "end_time": "11:00", "required_count": 2 },
+                { "skill_id": "SKL-003", "start_time": "09:00", "end_time": "13:00", "required_count": 2 }
+              ]
+            },
+            {
+              "category_small_id": "CAT-03-03",
+              "tasks": [
+                { "skill_id": "SKL-001", "start_time": "11:00", "end_time": "15:00", "required_count": 2 },
+                { "skill_id": "SKL-003", "start_time": "13:00", "end_time": "17:00", "required_count": 2 }
+              ]
+            },
+            {
+              "category_small_id": "CAT-03-04",
+              "tasks": [
+                { "skill_id": "SKL-001", "start_time": "15:00", "end_time": "19:00", "required_count": 2 },
+                { "skill_id": "SKL-003", "start_time": "17:00", "end_time": "21:00", "required_count": 2 }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -28,3 +28,15 @@ db.version(1).stores({
   shift_results: '&id',
   task_rows: '&id, category_large_id',
 });
+
+db.version(2).stores({
+  categories: '&id, name',
+  skills: '&id, name',
+  modes: '&id, name',
+  employees: '&id, name',
+  shift_requests: '&id, date, employee_id',
+  shift_results: '&id',
+  task_rows: '&id, category_large_id',
+}).upgrade(async (tx) => {
+  await tx.table('modes').clear();
+});
