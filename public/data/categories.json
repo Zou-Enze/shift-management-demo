@@ -1,0 +1,36 @@
+{
+  "categories": [
+    {
+      "id": "CAT-01",
+      "name": "低温",
+      "color": "#3B82F6",
+      "sub_categories": [
+        { "id": "CAT-01-01", "name": "チルド" },
+        { "id": "CAT-01-02", "name": "若菜" },
+        { "id": "CAT-01-03", "name": "生鮮" },
+        { "id": "CAT-01-04", "name": "冷凍" }
+      ]
+    },
+    {
+      "id": "CAT-02",
+      "name": "常温",
+      "color": "#F59E0B",
+      "sub_categories": [
+        { "id": "CAT-02-01", "name": "通過" },
+        { "id": "CAT-02-02", "name": "在庫入荷" },
+        { "id": "CAT-02-03", "name": "在庫出荷" }
+      ]
+    },
+    {
+      "id": "CAT-03",
+      "name": "輸送",
+      "color": "#10B981",
+      "sub_categories": [
+        { "id": "CAT-03-01", "name": "0便" },
+        { "id": "CAT-03-02", "name": "1便" },
+        { "id": "CAT-03-03", "name": "2便" },
+        { "id": "CAT-03-04", "name": "3便" }
+      ]
+    }
+  ]
+}

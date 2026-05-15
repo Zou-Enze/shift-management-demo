@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+
+<html lang="ja"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>トップ画面 - Precision Network System</title>
+<!-- Load Montserrat Font -->
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&amp;family=Noto+Sans+JP:wght@400;500;700&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS CDN -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: '#524b90',
+            accent: '#E6E600',
+            surface: '#fbf9f8',
+            'surface-dim': '#dcd9d9',
+            'surface-bright': '#fbf9f8',
+            'surface-container-low': '#f6f3f2',
+          },
+          fontFamily: {
+            sans: ['Montserrat', 'Noto Sans JP', 'sans-serif'],
+          },
+          borderRadius: {
+            'custom': '4px', // ROUND_FOUR from design system
+          }
+        }
+      }
+    }
+  </script>
+<style data-purpose="global-typography">
+    body {
+      font-family: 'Montserrat', 'Noto Sans JP', sans-serif;
+      background-color: #fbf9f8;
+    }
+  </style>
+<style data-purpose="card-effects">
+    .action-card {
+      transition: all 0.3s ease;
+      border: 1px solid #dcd9d9;
+    }
+    .action-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 10px 15px -3px rgba(82, 75, 144, 0.1), 0 4px 6px -2px rgba(82, 75, 144, 0.05);
+      border-color: #524b90;
+    }
+    .icon-button {
+      transition: background-color 0.2s;
+    }
+    .icon-button:hover {
+      background-color: rgba(82, 75, 144, 0.05);
+    }
+  </style>
+<style data-stitch-cursor=""></style><style data-stitch-scroll-lock=""></style></head>
+<body class="min-h-screen flex flex-col h-screen">
+<!-- BEGIN: MainHeader -->
+<header class="bg-white border-b border-surface-dim px-6 py-4 flex items-center justify-between" data-purpose="navigation-header">
+<!-- Home Navigation -->
+<div class="flex items-center">
+<button aria-label="ホーム" class="icon-button p-2 rounded-custom text-primary" data-purpose="home-button">
+<svg class="h-8 w-8" fill="currentColor" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+<path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"></path>
+</svg>
+</button>
+</div>
+<!-- Page Title -->
+<h1 class="text-xl font-bold text-gray-800" data-purpose="page-title">トップ画面</h1>
+<!-- Settings Navigation -->
+<div class="flex items-center">
+<button aria-label="設定" class="icon-button p-2 rounded-custom text-primary" data-purpose="settings-button">
+<svg class="h-8 w-8" fill="currentColor" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+<path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"></path>
+</svg>
+</button>
+</div>
+</header>
+<!-- END: MainHeader -->
+<!-- BEGIN: MainContent -->
+<main class="flex-grow flex items-center justify-center p-8 bg-surface flex-1" data-purpose="main-content-area">
+<div class="max-w-4xl w-full grid grid-cols-1 md:grid-cols-2 gap-10">
+<!-- New Shift Creation Card -->
+<a class="action-card bg-white p-12 rounded-custom flex flex-col items-center justify-center text-center group cursor-pointer" data-purpose="create-shift-card" href="#">
+<div class="w-20 h-20 mb-6 bg-surface-container-low rounded-full flex items-center justify-center group-hover:bg-primary/10">
+<svg class="h-10 w-10 text-primary" fill="none" stroke="currentColor" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+<path d="M12 4v16m8-8H4" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+</div>
+<span class="text-2xl font-bold text-gray-800">新規シフト作成</span>
+</a>
+<!-- Existing Shift Adjustment Card -->
+<a class="action-card bg-white p-12 rounded-custom flex flex-col items-center justify-center text-center group cursor-pointer" data-purpose="adjust-shift-card" href="#">
+<div class="w-20 h-20 mb-6 bg-surface-container-low rounded-full flex items-center justify-center group-hover:bg-primary/10">
+<svg class="h-10 w-10 text-primary" fill="none" stroke="currentColor" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+<path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+</div>
+<span class="text-2xl font-bold text-gray-800">既存シフト調整</span>
+</a>
+</div>
+</main>
+<!-- END: MainContent -->
+<!-- BEGIN: Footer -->
+<!-- END: Footer -->
+</body></html>

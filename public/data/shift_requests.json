@@ -1,0 +1,19 @@
+{
+  "shift_requests": [
+    { "id": "REQ-001", "date": "2026/05/25", "employee_id": "EMP-001", "employee_name": "田中 一郎",   "preferred_start": "09:00", "preferred_end": "17:00" },
+    { "id": "REQ-002", "date": "2026/05/25", "employee_id": "EMP-002", "employee_name": "鈴木 花子",   "preferred_start": "09:00", "preferred_end": "13:00" },
+    { "id": "REQ-003", "date": "2026/05/26", "employee_id": "EMP-003", "employee_name": "佐藤 次郎",   "preferred_start": "09:00", "preferred_end": "17:00" },
+    { "id": "REQ-004", "date": "2026/05/26", "employee_id": "EMP-004", "employee_name": "山田 三郎",   "preferred_start": "09:00", "preferred_end": "17:00" },
+    { "id": "REQ-005", "date": "2026/05/26", "employee_id": "EMP-005", "employee_name": "中村 美咲",   "preferred_start": "09:00", "preferred_end": "13:00" },
+    { "id": "REQ-006", "date": "2026/05/27", "employee_id": "EMP-006", "employee_name": "小林 健太",   "preferred_start": "13:00", "preferred_end": "17:00" },
+    { "id": "REQ-007", "date": "2026/05/27", "employee_id": "EMP-007", "employee_name": "加藤 さくら", "preferred_start": "09:00", "preferred_end": "17:00" },
+    { "id": "REQ-008", "date": "2026/05/27", "employee_id": "EMP-008", "employee_name": "吉田 大輔",   "preferred_start": "09:00", "preferred_end": "17:00" },
+    { "id": "REQ-009", "date": "2026/05/28", "employee_id": "EMP-009", "employee_name": "渡辺 優子",   "preferred_start": "09:00", "preferred_end": "13:00" },
+    { "id": "REQ-010", "date": "2026/05/28", "employee_id": "EMP-010", "employee_name": "伊藤 翔太",   "preferred_start": "09:00", "preferred_end": "17:00" },
+    { "id": "REQ-011", "date": "2026/05/28", "employee_id": "EMP-011", "employee_name": "清水 明",     "preferred_start": "13:00", "preferred_end": "17:00" },
+    { "id": "REQ-012", "date": "2026/05/29", "employee_id": "EMP-012", "employee_name": "山本 奈々",   "preferred_start": "09:00", "preferred_end": "17:00" },
+    { "id": "REQ-013", "date": "2026/05/29", "employee_id": "EMP-013", "employee_name": "松本 浩二",   "preferred_start": "09:00", "preferred_end": "13:00" },
+    { "id": "REQ-014", "date": "2026/05/29", "employee_id": "EMP-014", "employee_name": "井上 恵子",   "preferred_start": "09:00", "preferred_end": "17:00" },
+    { "id": "REQ-015", "date": "2026/05/30", "employee_id": "EMP-015", "employee_name": "木村 雄介",   "preferred_start": "13:00", "preferred_end": "17:00" }
+  ]
+}

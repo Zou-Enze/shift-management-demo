@@ -1,0 +1,276 @@
+<!DOCTYPE html><html lang="ja" style=""><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&amp;family=Hanken+Grotesk:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "on-secondary-container": "#6b6400",
+                    "on-error-container": "#93000a",
+                    "secondary-fixed-dim": "#d7ca00",
+                    "on-surface": "#1b1c1c",
+                    "inverse-primary": "#c6bfff",
+                    "on-secondary-fixed": "#1f1c00",
+                    "on-primary-fixed-variant": "#453d82",
+                    "tertiary-container": "#6b5000",
+                    "network-blue-dark": "#3A3469",
+                    "primary": "#3b3377",
+                    "on-secondary-fixed-variant": "#4d4800",
+                    "outline-variant": "#c9c4d2",
+                    "surface-container-high": "#eae8e7",
+                    "tertiary-fixed-dim": "#e8c26d",
+                    "surface-bright": "#fbf9f8",
+                    "inverse-surface": "#303030",
+                    "background": "#fbf9f8",
+                    "surface-container": "#f0eded",
+                    "tertiary": "#4e3a00",
+                    "surface-tint": "#5c559b",
+                    "on-secondary": "#ffffff",
+                    "tertiary-fixed": "#ffdf9b",
+                    "surface-container-lowest": "#ffffff",
+                    "on-tertiary": "#ffffff",
+                    "error": "#ba1a1a",
+                    "error-container": "#ffdad6",
+                    "surface-variant": "#e4e2e1",
+                    "primary-container": "#524b90",
+                    "on-tertiary-container": "#eac46e",
+                    "on-primary-container": "#c9c2ff",
+                    "border-subtle": "#E0E0E0",
+                    "surface-container-highest": "#e4e2e1",
+                    "on-tertiary-fixed": "#251a00",
+                    "inverse-on-surface": "#f3f0f0",
+                    "on-tertiary-fixed-variant": "#5a4300",
+                    "surface-container-low": "#f6f3f2",
+                    "secondary-container": "#f2e302",
+                    "surface-gray": "#F8F9FA",
+                    "secondary": "#676000",
+                    "secondary-fixed": "#f5e60b",
+                    "primary-fixed-dim": "#c6bfff",
+                    "on-primary-fixed": "#180d54",
+                    "on-error": "#ffffff",
+                    "on-primary": "#ffffff",
+                    "surface-dim": "#dcd9d9",
+                    "outline": "#787581",
+                    "on-surface-variant": "#474550",
+                    "on-background": "#1b1c1c",
+                    "surface": "#fbf9f8",
+                    "primary-fixed": "#e4dfff"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.125rem",
+                    "lg": "0.25rem",
+                    "xl": "0.5rem",
+                    "full": "0.75rem"
+            },
+            "spacing": {
+                    "margin-desktop": "48px",
+                    "max-width": "1200px",
+                    "unit": "4px",
+                    "margin-mobile": "16px",
+                    "gutter": "24px"
+            },
+            "fontFamily": {
+                    "label-sm": ["Hanken Grotesk"],
+                    "label-md": ["Hanken Grotesk"],
+                    "headline-md": ["Montserrat"],
+                    "body-lg": ["Hanken Grotesk"],
+                    "body-md": ["Hanken Grotesk"],
+                    "headline-lg-mobile": ["Montserrat"],
+                    "headline-lg": ["Montserrat"],
+                    "headline-xl": ["Montserrat"]
+            },
+            "fontSize": {
+                    "label-sm": ["12px", {"lineHeight": "1.0", "fontWeight": "500"}],
+                    "label-md": ["14px", {"lineHeight": "1.0", "letterSpacing": "0.05em", "fontWeight": "600"}],
+                    "headline-md": ["24px", {"lineHeight": "1.4", "fontWeight": "600"}],
+                    "body-lg": ["18px", {"lineHeight": "1.6", "fontWeight": "400"}],
+                    "body-md": ["16px", {"lineHeight": "1.6", "fontWeight": "400"}],
+                    "headline-lg-mobile": ["24px", {"lineHeight": "1.3", "fontWeight": "700"}],
+                    "headline-lg": ["32px", {"lineHeight": "1.3", "fontWeight": "700"}],
+                    "headline-xl": ["48px", {"lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "700"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            height: 8px;
+            width: 8px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #c9c4d2;
+            border-radius: 4px;
+        }
+        .gantt-grid {
+            background-image: linear-gradient(to right, #E0E0E0 1px, transparent 1px);
+            background-size: 60px 100%;
+        }
+    </style>
+<style data-stitch-cursor=""></style><style data-stitch-scroll-lock=""></style><style data-stitch-cursor=""></style><style data-stitch-scroll-lock=""></style></head>
+<body class="bg-surface text-on-surface font-body-md min-h-screen">
+<!-- Top Navigation Bar -->
+<main class="max-w-max-width mx-auto px-margin-desktop py-12">
+<!-- Title & Breadcrumb -->
+<!-- Section 1: Summary Metrics -->
+<section class="mb-16">
+<h2 class="text-headline-md font-headline-md text-primary mb-6">サマリ</h2>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-gutter">
+<!-- Card 1 -->
+<div class="bg-surface-container-lowest border border-border-subtle p-8 flex flex-col justify-between hover:border-primary transition-colors">
+<span class="text-label-md font-label-md text-on-surface-variant mb-4">シフト割当人数</span>
+<div class="flex items-baseline gap-2">
+<span class="text-headline-xl font-headline-xl text-primary">216</span>
+<span class="text-headline-md font-headline-md text-on-surface">名</span>
+</div>
+</div>
+<!-- Card 2 -->
+<div class="bg-surface-container-lowest border border-border-subtle p-8 flex flex-col justify-between hover:border-primary transition-colors">
+<span class="text-label-md font-label-md text-on-surface-variant mb-4">合計作業</span>
+<div class="flex items-baseline gap-2">
+<span class="text-headline-xl font-headline-xl text-primary">864</span>
+<span class="text-headline-md font-headline-md text-on-surface">時間</span>
+</div>
+</div>
+<!-- Card 3 -->
+<div class="bg-error text-on-error p-8 flex flex-col justify-between border-l-4 border-l-error-container">
+<span class="text-label-md font-label-md text-on-error/80 mb-4">不足工数</span>
+<div class="flex items-baseline gap-2"><span class="text-headline-xl font-headline-xl text-on-error">5</span><span class="text-headline-md font-headline-md text-on-error">時間・人</span></div>
+</div>
+</div>
+</section>
+<!-- Section 2: Work Axis Table -->
+<section class="mb-16">
+<div class="flex justify-between items-end mb-6">
+<h2 class="text-headline-md font-headline-md text-primary">シフト管理表：作業軸</h2>
+</div>
+<div class="bg-surface-container-lowest border border-border-subtle overflow-hidden">
+<div class="overflow-x-auto custom-scrollbar">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="bg-surface-container-low border-b border-border-subtle">
+<th class="px-6 py-4 font-label-md text-label-md text-on-surface-variant">カテゴリ大</th>
+<th class="px-6 py-4 font-label-md text-label-md text-on-surface-variant">カテゴリ小</th>
+<th class="px-6 py-4 font-label-md text-label-md text-on-surface-variant">開始時間</th>
+<th class="px-6 py-4 font-label-md text-label-md text-on-surface-variant">終了時間</th>
+<th class="px-6 py-4 font-label-md text-label-md text-on-surface-variant">作業内容</th>
+<th class="px-6 py-4 font-label-md text-label-md text-on-surface-variant">スキル</th>
+<th class="px-6 py-4 font-label-md text-label-md text-on-surface-variant">要員数</th>
+<th class="px-6 py-4 font-label-md text-label-md text-on-surface-variant">割当要員 (ID、名前)</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-border-subtle">
+<tr class="hover:bg-surface-container-low transition-colors">
+<td class="px-6 py-4 font-body-md">入庫管理</td>
+<td class="px-6 py-4 font-body-md">検品</td>
+<td class="px-6 py-4 font-body-md">09:00</td>
+<td class="px-6 py-4 font-body-md">12:00</td>
+<td class="px-6 py-4 font-body-md">Aライン検品作業</td>
+<td class="px-6 py-4 font-body-md"><span class="bg-surface-variant px-2 py-1 rounded text-label-sm">Level 3</span></td>
+<td class="px-6 py-4 font-body-md">4名</td>
+<td class="px-6 py-4 font-body-md text-primary font-medium">U01 上田, I02 石橋...</td>
+</tr>
+<tr class="hover:bg-surface-container-low transition-colors">
+<td class="px-6 py-4 font-body-md">出庫管理</td>
+<td class="px-6 py-4 font-body-md">ピッキング</td>
+<td class="px-6 py-4 font-body-md">13:00</td>
+<td class="px-6 py-4 font-body-md">17:00</td>
+<td class="px-6 py-4 font-body-md">Bエリアピッキング</td>
+<td class="px-6 py-4 font-body-md"><span class="bg-surface-variant px-2 py-1 rounded text-label-sm">Level 2</span></td>
+<td class="px-6 py-4 font-body-md">8名</td>
+<td class="px-6 py-4 font-body-md text-primary font-medium">T05 田村, W06 武田...</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</section>
+<!-- Section 3: Staff Axis Gantt Chart -->
+<section class="mb-16">
+<h2 class="text-headline-md font-headline-md text-primary mb-6">シフト管理表：要員轴</h2>
+<div class="bg-surface-container-lowest border border-border-subtle p-1 overflow-hidden">
+<div class="overflow-x-auto custom-scrollbar">
+<div class="min-w-[1632px]">
+<!-- Gantt Header (Time) -->
+<div class="flex border-b border-border-subtle bg-surface-container-low">
+<div class="w-48 p-4 font-label-md text-label-md border-r border-border-subtle shrink-0">従業員 / 勤務時間</div>
+<div class="flex flex-1">
+<template id="hours-template">
+<div class="w-[60px] text-center py-4 text-label-sm font-label-sm border-r border-border-subtle shrink-0">7時</div>
+<div class="w-[60px] text-center py-4 text-label-sm font-label-sm border-r border-border-subtle shrink-0">8時</div>
+<div class="w-[60px] text-center py-4 text-label-sm font-label-sm border-r border-border-subtle shrink-0">9時</div>
+<div class="w-[60px] text-center py-4 text-label-sm font-label-sm border-r border-border-subtle shrink-0">10時</div>
+<div class="w-[60px] text-center py-4 text-label-sm font-label-sm border-r border-border-subtle shrink-0">11時</div>
+<div class="w-[60px] text-center py-4 text-label-sm font-label-sm border-r border-border-subtle shrink-0">12時</div>
+<div class="w-[60px] text-center py-4 text-label-sm font-label-sm border-r border-border-subtle shrink-0">13時</div>
+<div class="w-[60px] text-center py-4 text-label-sm font-label-sm border-r border-border-subtle shrink-0">14時</div>
+<div class="w-[60px] text-center py-4 text-label-sm font-label-sm border-r border-border-subtle shrink-0">15時</div>
+<div class="w-[60px] text-center py-4 text-label-sm font-label-sm border-r border-border-subtle shrink-0">16時</div>
+<div class="w-[60px] text-center py-4 text-label-sm font-label-sm border-r border-border-subtle shrink-0">17時</div>
+<div class="w-[60px] text-center py-4 text-label-sm font-label-sm border-r border-border-subtle shrink-0">18時</div>
+<div class="w-[60px] text-center py-4 text-label-sm font-label-sm border-r border-border-subtle shrink-0">19時</div>
+<div class="w-[60px] text-center py-4 text-label-sm font-label-sm border-r border-border-subtle shrink-0">20時</div>
+<div class="w-[60px] text-center py-4 text-label-sm font-label-sm border-r border-border-subtle shrink-0">21時</div>
+<div class="w-[60px] text-center py-4 text-label-sm font-label-sm shrink-0">22時</div>
+</template>
+<!-- Using a div to hold the templated hours -->
+<div class="flex"><div class="w-[60px] text-center py-4 text-label-sm font-label-sm border-r border-border-subtle shrink-0">0時</div><div class="w-[60px] text-center py-4 text-label-sm font-label-sm border-r border-border-subtle shrink-0">1時</div><div class="w-[60px] text-center py-4 text-label-sm font-label-sm border-r border-border-subtle shrink-0">2時</div><div class="w-[60px] text-center py-4 text-label-sm font-label-sm border-r border-border-subtle shrink-0">3時</div><div class="w-[60px] text-center py-4 text-label-sm font-label-sm border-r border-border-subtle shrink-0">4時</div><div class="w-[60px] text-center py-4 text-label-sm font-label-sm border-r border-border-subtle shrink-0">5時</div><div class="w-[60px] text-center py-4 text-label-sm font-label-sm border-r border-border-subtle shrink-0">6時</div><div class="w-[60px] text-center py-4 text-label-sm font-label-sm border-r border-border-subtle shrink-0">7時</div><div class="w-[60px] text-center py-4 text-label-sm font-label-sm border-r border-border-subtle shrink-0">8時</div><div class="w-[60px] text-center py-4 text-label-sm font-label-sm border-r border-border-subtle shrink-0">9時</div><div class="w-[60px] text-center py-4 text-label-sm font-label-sm border-r border-border-subtle shrink-0">10時</div><div class="w-[60px] text-center py-4 text-label-sm font-label-sm border-r border-border-subtle shrink-0">11時</div><div class="w-[60px] text-center py-4 text-label-sm font-label-sm border-r border-border-subtle shrink-0">12時</div><div class="w-[60px] text-center py-4 text-label-sm font-label-sm border-r border-border-subtle shrink-0">13時</div><div class="w-[60px] text-center py-4 text-label-sm font-label-sm border-r border-border-subtle shrink-0">14時</div><div class="w-[60px] text-center py-4 text-label-sm font-label-sm border-r border-border-subtle shrink-0">15時</div><div class="w-[60px] text-center py-4 text-label-sm font-label-sm border-r border-border-subtle shrink-0">16時</div><div class="w-[60px] text-center py-4 text-label-sm font-label-sm border-r border-border-subtle shrink-0">17時</div><div class="w-[60px] text-center py-4 text-label-sm font-label-sm border-r border-border-subtle shrink-0">18時</div><div class="w-[60px] text-center py-4 text-label-sm font-label-sm border-r border-border-subtle shrink-0">19時</div><div class="w-[60px] text-center py-4 text-label-sm font-label-sm border-r border-border-subtle shrink-0">20時</div><div class="w-[60px] text-center py-4 text-label-sm font-label-sm border-r border-border-subtle shrink-0">21時</div><div class="w-[60px] text-center py-4 text-label-sm font-label-sm border-r border-border-subtle shrink-0">22時</div><div class="w-[60px] text-center py-4 text-label-sm font-label-sm shrink-0">23時</div></div>
+</div>
+</div>
+<!-- Gantt Rows -->
+<div class="divide-y divide-border-subtle">
+<!-- Person 1: 上田 -->
+<div class="flex h-20">
+<div class="w-48 p-4 border-r border-border-subtle shrink-0 flex flex-col justify-center">
+<div class="font-bold text-on-surface">上田</div>
+<div class="text-label-sm text-on-surface-variant">早番 (休憩 60分) 9h</div>
+</div>
+<div class="flex-1 relative gantt-grid bg-white"><div class="absolute top-4 left-[540px] w-[120px] h-12 bg-green-500/80 rounded flex items-center justify-center text-white text-[10px] font-bold">作業a</div><div class="absolute top-4 left-[660px] w-[120px] h-12 bg-green-600/80 rounded flex items-center justify-center text-white text-[10px] font-bold">作業b</div><div class="absolute top-4 left-[780px] w-[60px] h-12 bg-secondary-container/80 rounded flex items-center justify-center text-on-surface text-[10px] font-bold">休憩</div><div class="absolute top-4 left-[840px] w-[240px] h-12 bg-green-600/80 rounded flex items-center justify-center text-white text-[10px] font-bold">作業b</div></div>
+</div>
+<!-- Person 2: 石橋 -->
+<div class="flex h-20">
+<div class="w-48 p-4 border-r border-border-subtle shrink-0 flex flex-col justify-center">
+<div class="font-bold text-on-surface">石橋</div>
+<div class="text-label-sm text-on-surface-variant">早番 (休憩 60分) 9h</div>
+</div>
+<div class="flex-1 relative gantt-grid bg-white"><div class="absolute top-4 left-[540px] w-[60px] h-12 bg-green-500/80 rounded flex items-center justify-center text-white text-[10px] font-bold">作業a</div><div class="absolute top-4 left-[600px] w-[120px] h-12 bg-green-600/80 rounded flex items-center justify-center text-white text-[10px] font-bold">作業b</div><div class="absolute top-4 left-[720px] w-[60px] h-12 bg-secondary-container/80 rounded flex items-center justify-center text-on-surface text-[10px] font-bold">休憩</div><div class="absolute top-4 left-[780px] w-[60px] h-12 bg-green-500/80 rounded flex items-center justify-center text-white text-[10px] font-bold">作業a</div><div class="absolute top-4 left-[840px] w-[240px] h-12 bg-orange-500/80 rounded flex items-center justify-center text-white text-[10px] font-bold">作業e</div></div>
+</div>
+<!-- Person 3: OMN従業員 -->
+<div class="flex h-20">
+<div class="w-48 p-4 border-r border-border-subtle shrink-0 flex flex-col justify-center">
+<div class="font-bold text-on-surface">OMN従業員</div>
+<div class="text-label-sm text-on-surface-variant">11:00〜20:00</div>
+</div>
+<div class="flex-1 relative gantt-grid bg-white"><div class="absolute top-4 left-[660px] w-[480px] h-12 bg-network-blue-dark/90 rounded flex items-center justify-center text-white text-[10px] font-bold">B店応援</div></div>
+</div>
+<!-- Person 4: 田村 -->
+<div class="flex h-20">
+<div class="w-48 p-4 border-r border-border-subtle shrink-0 flex flex-col justify-center">
+<div class="font-bold text-on-surface">田村</div>
+<div class="text-label-sm text-on-surface-variant">中番 (休憩 60分) 9h</div>
+</div>
+<div class="flex-1 relative gantt-grid bg-white"><div class="absolute top-4 left-[780px] w-[180px] h-12 bg-orange-500/80 rounded flex items-center justify-center text-white text-[10px] font-bold">作業e</div><div class="absolute top-4 left-[960px] w-[60px] h-12 bg-secondary-container/80 rounded flex items-center justify-center text-on-surface text-[10px] font-bold">休憩</div><div class="absolute top-4 left-[1020px] w-[120px] h-12 bg-blue-500/80 rounded flex items-center justify-center text-white text-[10px] font-bold">作業c</div><div class="absolute top-4 left-[1140px] w-[120px] h-12 bg-orange-500/80 rounded flex items-center justify-center text-white text-[10px] font-bold">作業e</div></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Final Actions -->
+</main>
+<!-- Footer -->
+
+
+</body></html>
