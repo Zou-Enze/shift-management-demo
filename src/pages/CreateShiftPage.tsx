@@ -292,7 +292,12 @@ export default function CreateShiftPage() {
     if (rows.length > 0) await db.task_rows.bulkPut(rows);
   };
 
-  const handleReflect = () => {
+  const handleReflect = async () => {
+    const currentMode = modes?.find((m) => m.id === taskModeId);
+    if (!currentMode || !currentMode.is_custom) {
+      await doReflect();
+      return;
+    }
     setNewWorkloadName('');
     setSaveDialogOpen(true);
   };
@@ -643,48 +648,28 @@ export default function CreateShiftPage() {
                         );
                       })}
                     </Stack>
-
-                    <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 4 }}>
-                      <Button
-                        variant="contained"
-                        startIcon={<CheckCircleIcon />}
-                        onClick={handleReflect}
-                        sx={{
-                          bgcolor: '#F2E300',
-                          color: '#6B6400',
-                          '&:hover': { bgcolor: '#D7CA00' },
-                          px: 4,
-                          fontWeight: 700,
-                          fontSize: '16px',
-                        }}
-                      >
-                        反映
-                      </Button>
-                    </Box>
                   </Paper>
                 );
               })}
             </Stack>
 
-            {selectedLargeIds.length === 0 && (
-              <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 4 }}>
-                <Button
-                  variant="contained"
-                  startIcon={<CheckCircleIcon />}
-                  onClick={handleReflect}
-                  sx={{
-                    bgcolor: '#F2E300',
-                    color: '#6B6400',
-                    '&:hover': { bgcolor: '#D7CA00' },
-                    px: 4,
-                    fontWeight: 700,
-                    fontSize: '16px',
-                  }}
-                >
-                  反映
-                </Button>
-              </Box>
-            )}
+            <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 4 }}>
+              <Button
+                variant="contained"
+                startIcon={<CheckCircleIcon />}
+                onClick={handleReflect}
+                sx={{
+                  bgcolor: '#F2E300',
+                  color: '#6B6400',
+                  '&:hover': { bgcolor: '#D7CA00' },
+                  px: 4,
+                  fontWeight: 700,
+                  fontSize: '16px',
+                }}
+              >
+                反映
+              </Button>
+            </Box>
           </Box>
         </Paper>
       </Box>
