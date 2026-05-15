@@ -1,42 +1,65 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
 import {
   Box,
   Stack,
   Typography,
-  TextField,
   Paper,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableRow,
   Button,
-  Select,
-  MenuItem,
+  Grid,
+  Card,
+  CardContent,
   IconButton,
+  TextField,
+  MenuItem,
+  Select,
+  FormControl,
+  InputLabel,
   Backdrop,
   CircularProgress,
   Fab,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  List,
+  ListItemButton,
+  ListItemText,
 } from '@mui/material';
 import AssignmentIcon from '@mui/icons-material/Assignment';
-import GroupsIcon from '@mui/icons-material/Groups';
-import AddCircleIcon from '@mui/icons-material/AddCircle';
-import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
+import AddBoxIcon from '@mui/icons-material/AddBoxOutlined';
+import AddIcon from '@mui/icons-material/Add';
+import MoreTimeIcon from '@mui/icons-material/MoreTime';
+import EditIcon from '@mui/icons-material/EditOutlined';
+import SaveIcon from '@mui/icons-material/SaveOutlined';
+import DeleteIcon from '@mui/icons-material/DeleteOutline';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import BoltIcon from '@mui/icons-material/Bolt';
-import SetTaskDialog from '../components/SetTaskDialog';
 import { db } from '../db/database';
 import { getCategorySmallColor } from '../constants/categoryColors';
-import { formatTaskDateTime } from '../utils/taskDateTime';
-import type { Category, Skill, Employee, ShiftRequest, TaskRow } from '../types';
+import { isoDateToSlash, slashDateToIso, todayIsoDate } from '../utils/taskDateTime';
+import type { Category, Skill, TaskRow, Mode } from '../types';
 
-function newId(prefix: string): string {
-  return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+interface SkillConfig {
+  id: string;
+  skill_id: string;
+  start_time: string;
+  end_time: string;
+  task_name: string;
+  required_count: number;
 }
 
-function today(): string {
-  return new Date().toISOString().slice(0, 10);
+interface SmallConfig {
+  category_small_id: string;
+  category_small_name: string;
+  skills: SkillConfig[];
+}
+
+type TaskConfig = Record<string, SmallConfig[]>;
+
+function uid(prefix: string): string {
+  return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
 }
 
 export default function CreateShiftPage() {
@@ -44,13 +67,69 @@ export default function CreateShiftPage() {
 
   const categories = useLiveQuery(() => db.categories.toArray(), []) as Category[] | undefined;
   const skills = useLiveQuery(() => db.skills.toArray(), []) as Skill[] | undefined;
-  const employees = useLiveQuery(() => db.employees.toArray(), []) as Employee[] | undefined;
-  const requests = useLiveQuery(() => db.shift_requests.toArray(), []) as ShiftRequest[] | undefined;
-  const taskRows = useLiveQuery(() => db.task_rows.toArray(), []) as TaskRow[] | undefined;
+  const modes = useLiveQuery(() => db.modes.toArray(), []) as Mode[] | undefined;
+  const existingTaskRows = useLiveQuery(() => db.task_rows.toArray(), []) as TaskRow[] | undefined;
 
-  const [targetDate, setTargetDate] = useState<string>(today());
+  const [taskTargetDateIso, setTaskTargetDateIso] = useState<string>(todayIsoDate());
+  const [taskModeId, setTaskModeId] = useState<string>('MODE-01');
+  const [selectedLargeIds, setSelectedLargeIds] = useState<string[]>([]);
+  const [taskConfig, setTaskConfig] = useState<TaskConfig>({});
+  const [hydrated, setHydrated] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [setTaskOpen, setSetTaskOpen] = useState(false);
+
+  const [largeDialogOpen, setLargeDialogOpen] = useState(false);
+  const [smallDialogForLarge, setSmallDialogForLarge] = useState<string | null>(null);
+  const [skillDialogState, setSkillDialogState] = useState<{ largeId: string; smallId: string } | null>(null);
+  const [editingSkillId, setEditingSkillId] = useState<string | null>(null);
+  const [editingCount, setEditingCount] = useState<number>(1);
+
+  useEffect(() => {
+    if (hydrated) return;
+    if (!categories || !existingTaskRows) return;
+    if (existingTaskRows.length === 0) {
+      setTaskTargetDateIso(todayIsoDate());
+      setHydrated(true);
+      return;
+    }
+    const subNameMap = new Map<string, string>();
+    const subToLarge = new Map<string, string>();
+    categories.forEach((c) =>
+      c.sub_categories.forEach((sc) => {
+        subNameMap.set(sc.id, sc.name);
+        subToLarge.set(sc.id, c.id);
+      })
+    );
+    const cfg: TaskConfig = {};
+    const largeSet = new Set<string>();
+    existingTaskRows.forEach((row) => {
+      const largeId = row.category_large_id || subToLarge.get(row.category_small_id) || '';
+      if (!largeId) return;
+      largeSet.add(largeId);
+      if (!cfg[largeId]) cfg[largeId] = [];
+      let small = cfg[largeId].find((s) => s.category_small_id === row.category_small_id);
+      if (!small) {
+        small = {
+          category_small_id: row.category_small_id,
+          category_small_name: subNameMap.get(row.category_small_id) ?? row.category_small_id,
+          skills: [],
+        };
+        cfg[largeId].push(small);
+      }
+      small.skills.push({
+        id: row.id,
+        skill_id: row.skill_id,
+        start_time: row.start_time,
+        end_time: row.end_time,
+        task_name: row.task_name,
+        required_count: row.required_count,
+      });
+    });
+    setSelectedLargeIds(Array.from(largeSet));
+    setTaskConfig(cfg);
+    const td0 = existingTaskRows[0]?.task_date;
+    setTaskTargetDateIso(td0 && td0.includes('/') ? slashDateToIso(td0) : todayIsoDate());
+    setHydrated(true);
+  }, [categories, existingTaskRows, hydrated]);
 
   const skillMap = useMemo(() => {
     const m = new Map<string, string>();
@@ -58,39 +137,98 @@ export default function CreateShiftPage() {
     return m;
   }, [skills]);
 
-  const subCategoryMap = useMemo(() => {
-    const m = new Map<string, { name: string; largeName: string }>();
-    (categories ?? []).forEach((c) => {
-      c.sub_categories.forEach((sc) => m.set(sc.id, { name: sc.name, largeName: c.name }));
+  const availableLargeCategories = useMemo(
+    () => (categories ?? []).filter((c) => !selectedLargeIds.includes(c.id)),
+    [categories, selectedLargeIds]
+  );
+
+  const addLargeCategory = (largeId: string) => {
+    setSelectedLargeIds((prev) => [...prev, largeId]);
+    setTaskConfig((prev) => ({ ...prev, [largeId]: prev[largeId] ?? [] }));
+    setLargeDialogOpen(false);
+  };
+
+  const removeLargeCategory = (largeId: string) => {
+    setSelectedLargeIds((prev) => prev.filter((id) => id !== largeId));
+    setTaskConfig((prev) => {
+      const next = { ...prev };
+      delete next[largeId];
+      return next;
     });
-    return m;
-  }, [categories]);
+  };
 
-  const handleAddRequest = async () => {
-    const first = employees?.[0];
-    if (!first) return;
-    await db.shift_requests.add({
-      id: newId('REQ'),
-      date: targetDate.replace(/-/g, '/'),
-      employee_id: first.id,
-      employee_name: first.name,
-      preferred_start: '09:00',
-      preferred_end: '17:00',
+  const addSmallCategory = (largeId: string, smallId: string, smallName: string) => {
+    setTaskConfig((prev) => {
+      const list = prev[largeId] ?? [];
+      if (list.some((s) => s.category_small_id === smallId)) return prev;
+      return {
+        ...prev,
+        [largeId]: [...list, { category_small_id: smallId, category_small_name: smallName, skills: [] }],
+      };
     });
+    setSmallDialogForLarge(null);
   };
 
-  const handleUpdateRequest = async (id: string, changes: Partial<ShiftRequest>) => {
-    await db.shift_requests.update(id, changes);
+  const removeSmallCategory = (largeId: string, smallId: string) => {
+    setTaskConfig((prev) => ({
+      ...prev,
+      [largeId]: (prev[largeId] ?? []).filter((s) => s.category_small_id !== smallId),
+    }));
   };
 
-  const handleEmployeeChange = async (id: string, employeeId: string) => {
-    const emp = employees?.find((e) => e.id === employeeId);
-    if (!emp) return;
-    await db.shift_requests.update(id, { employee_id: emp.id, employee_name: emp.name });
+  const addSkillConfig = (largeId: string, smallId: string, cfg: Omit<SkillConfig, 'id'>) => {
+    setTaskConfig((prev) => ({
+      ...prev,
+      [largeId]: (prev[largeId] ?? []).map((s) =>
+        s.category_small_id === smallId
+          ? { ...s, skills: [...s.skills, { ...cfg, id: uid('SK') }] }
+          : s
+      ),
+    }));
+    setSkillDialogState(null);
   };
 
-  const handleRemoveRequest = async (id: string) => {
-    await db.shift_requests.delete(id);
+  const updateSkillCount = (largeId: string, smallId: string, skillRowId: string, count: number) => {
+    setTaskConfig((prev) => ({
+      ...prev,
+      [largeId]: (prev[largeId] ?? []).map((s) =>
+        s.category_small_id === smallId
+          ? { ...s, skills: s.skills.map((sk) => (sk.id === skillRowId ? { ...sk, required_count: count } : sk)) }
+          : s
+      ),
+    }));
+  };
+
+  const removeSkill = (largeId: string, smallId: string, skillRowId: string) => {
+    setTaskConfig((prev) => ({
+      ...prev,
+      [largeId]: (prev[largeId] ?? []).map((s) =>
+        s.category_small_id === smallId ? { ...s, skills: s.skills.filter((sk) => sk.id !== skillRowId) } : s
+      ),
+    }));
+  };
+
+  const handleReflect = async () => {
+    const rows: TaskRow[] = [];
+    Object.entries(taskConfig).forEach(([largeId, smalls]) => {
+      smalls.forEach((small) => {
+        small.skills.forEach((sk) => {
+          rows.push({
+            id: sk.id,
+            category_large_id: largeId,
+            category_small_id: small.category_small_id,
+            task_date: isoDateToSlash(taskTargetDateIso),
+            start_time: sk.start_time,
+            end_time: sk.end_time,
+            task_name: sk.task_name,
+            skill_id: sk.skill_id,
+            required_count: sk.required_count,
+          });
+        });
+      });
+    });
+    await db.task_rows.clear();
+    if (rows.length > 0) await db.task_rows.bulkPut(rows);
   };
 
   const handleSubmit = () => {
@@ -107,205 +245,323 @@ export default function CreateShiftPage() {
         新規シフト作成
       </Typography>
 
-      <Paper
-        sx={{
-          p: 4,
-          mb: 6,
-          border: '1px solid',
-          borderColor: 'divider',
-          borderRadius: 1,
-          bgcolor: 'background.paper',
-        }}
-        elevation={0}
-      >
-        <TextField
-          label="対象日"
-          type="date"
-          size="small"
-          value={targetDate}
-          onChange={(e) => setTargetDate(e.target.value)}
-          InputLabelProps={{ shrink: true }}
-        />
-      </Paper>
-
       <Box sx={{ mb: 6 }}>
         <Stack direction="row" alignItems="center" spacing={1.5} sx={{ mb: 3 }}>
           <AssignmentIcon sx={{ color: 'primary.light' }} />
-          <Typography variant="h3">作業内容入力</Typography>
+          <Typography variant="h3">作業内容設定</Typography>
         </Stack>
 
-        <Paper sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1, overflow: 'hidden' }} elevation={0}>
-          <Table>
-            <TableHead>
-              <TableRow sx={{ bgcolor: '#524B90' }}>
-                {['カテゴリ小', '開始時間', '終了時間', '作業内容', 'スキル', '必要人数'].map((h) => (
-                  <TableCell
-                    key={h}
-                    sx={{ color: '#FFFFFF', fontWeight: 600, fontSize: '14px', letterSpacing: '0.05em' }}
+        <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1, overflow: 'hidden' }}>
+          <Box sx={{ p: { xs: 2, md: 4 } }}>
+            <TextField
+              label="対象日"
+              type="date"
+              size="small"
+              value={taskTargetDateIso}
+              onChange={(e) => setTaskTargetDateIso(e.target.value)}
+              InputLabelProps={{ shrink: true }}
+              sx={{ mb: 3, maxWidth: 220 }}
+            />
+
+            <Stack
+              direction={{ xs: 'column', sm: 'row' }}
+              spacing={2}
+              alignItems={{ xs: 'stretch', sm: 'center' }}
+              justifyContent="space-between"
+              sx={{ mb: 4 }}
+            >
+              <FormControl size="small" sx={{ minWidth: 160 }}>
+                <InputLabel id="task-mode-label">モード</InputLabel>
+                <Select
+                  labelId="task-mode-label"
+                  label="モード"
+                  value={taskModeId}
+                  onChange={(e) => setTaskModeId(String(e.target.value))}
+                >
+                  {(modes ?? []).map((m) => (
+                    <MenuItem key={m.id} value={m.id}>
+                      {m.name}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+
+              <Button
+                variant="outlined"
+                startIcon={<AddBoxIcon />}
+                onClick={() => setLargeDialogOpen(true)}
+                sx={{
+                  color: 'primary.light',
+                  borderColor: 'primary.light',
+                  alignSelf: { xs: 'stretch', sm: 'flex-end' },
+                }}
+              >
+                大カテゴリ追加
+              </Button>
+            </Stack>
+
+            {selectedLargeIds.length === 0 && (
+              <Paper
+                variant="outlined"
+                sx={{ p: 6, textAlign: 'center', color: 'text.secondary', borderStyle: 'dashed' }}
+              >
+                <Typography>「大カテゴリ追加」から作業対象のカテゴリを追加してください。</Typography>
+              </Paper>
+            )}
+
+            <Stack spacing={4}>
+              {selectedLargeIds.map((largeId) => {
+                const cat = categories?.find((c) => c.id === largeId);
+                if (!cat) return null;
+                const smalls = taskConfig[largeId] ?? [];
+                const remainingSmallIds = cat.sub_categories.filter(
+                  (sc) => !smalls.some((s) => s.category_small_id === sc.id)
+                );
+
+                return (
+                  <Paper
+                    key={largeId}
+                    elevation={0}
+                    sx={{ p: 3, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}
                   >
-                    {h}
-                  </TableCell>
-                ))}
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {(taskRows ?? []).length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={6} sx={{ py: 4, color: 'text.secondary', textAlign: 'center', fontStyle: 'italic' }}>
-                    まだ作業内容が登録されていません。下のボタンから追加してください。
-                  </TableCell>
-                </TableRow>
-              ) : (
-                (taskRows ?? []).map((row) => {
-                  const small = subCategoryMap.get(row.category_small_id);
-                  return (
-                    <TableRow key={row.id} hover>
-                      <TableCell sx={{ borderLeft: `4px solid ${getCategorySmallColor(row.category_small_id)}` }}>
-                        {small?.name ?? row.category_small_id}
-                      </TableCell>
-                      <TableCell sx={{ whiteSpace: 'nowrap' }}>
-                        {formatTaskDateTime(row.task_date, row.start_time, targetDate)}
-                      </TableCell>
-                      <TableCell sx={{ whiteSpace: 'nowrap' }}>
-                        {formatTaskDateTime(row.task_date, row.end_time, targetDate)}
-                      </TableCell>
-                      <TableCell>{row.task_name}</TableCell>
-                      <TableCell>
-                        <Box
-                          component="span"
+                    <Stack
+                      direction="row"
+                      justifyContent="space-between"
+                      alignItems="center"
+                      sx={{ borderBottom: '1px solid', borderColor: 'divider', pb: 2, mb: 3 }}
+                    >
+                      <Stack direction="row" alignItems="center" spacing={1.5}>
+                        <Box sx={{ width: 14, height: 14, bgcolor: cat.color, borderRadius: '4px' }} />
+                        <Typography variant="h3" sx={{ color: '#3A3469' }}>
+                          {cat.name}
+                        </Typography>
+                      </Stack>
+                      <Stack direction="row" spacing={1.5}>
+                        <Button
+                          startIcon={<AddIcon />}
+                          size="small"
+                          onClick={() => setSmallDialogForLarge(largeId)}
+                          disabled={remainingSmallIds.length === 0}
                           sx={{
-                            bgcolor: '#F0EDED',
-                            px: 1,
-                            py: 0.5,
-                            borderRadius: '4px',
-                            fontSize: '12px',
+                            bgcolor: '#F2E300',
+                            color: '#6B6400',
+                            borderRadius: 999,
+                            px: 2,
+                            '&:hover': { bgcolor: '#D7CA00' },
+                            '&.Mui-disabled': { bgcolor: '#F0EDED', color: '#9C9A9F' },
                           }}
                         >
-                          {skillMap.get(row.skill_id) ?? row.skill_id}
-                        </Box>
-                      </TableCell>
-                      <TableCell>{row.required_count}名</TableCell>
-                    </TableRow>
-                  );
-                })
-              )}
-              <TableRow>
-                <TableCell colSpan={6} sx={{ p: 0 }}>
-                  <Button
-                    fullWidth
-                    startIcon={<AddCircleIcon />}
-                    onClick={() => setSetTaskOpen(true)}
-                    sx={{
-                      py: 2,
-                      color: 'text.secondary',
-                      fontWeight: 600,
-                      '&:hover': { color: 'primary.main', bgcolor: 'rgba(82,75,144,0.04)' },
-                    }}
-                  >
-                    作業内容を追加する
-                  </Button>
-                </TableCell>
-              </TableRow>
-            </TableBody>
-          </Table>
-        </Paper>
-      </Box>
+                          小カテゴリ追加
+                        </Button>
+                        <Button
+                          size="small"
+                          color="inherit"
+                          onClick={() => removeLargeCategory(largeId)}
+                          sx={{ color: 'text.secondary' }}
+                        >
+                          削除
+                        </Button>
+                      </Stack>
+                    </Stack>
 
-      <Box sx={{ mb: 6 }}>
-        <Stack direction="row" alignItems="center" spacing={1.5} sx={{ mb: 3 }}>
-          <GroupsIcon sx={{ color: 'primary.light' }} />
-          <Typography variant="h3">シフト希望表入力</Typography>
-        </Stack>
+                    <Stack spacing={3}>
+                      {smalls.length === 0 && (
+                        <Typography
+                          sx={{ color: 'text.secondary', fontStyle: 'italic', textAlign: 'center', py: 3 }}
+                        >
+                          「小カテゴリ追加」から小カテゴリを追加してください。
+                        </Typography>
+                      )}
+                      {smalls.map((small) => {
+                        const color = getCategorySmallColor(small.category_small_id);
+                        return (
+                          <Paper
+                            key={small.category_small_id}
+                            elevation={0}
+                            sx={{
+                              p: 3,
+                              border: '1px solid',
+                              borderColor: 'divider',
+                              borderLeft: `4px solid ${color}`,
+                              borderRadius: 2,
+                            }}
+                          >
+                            <Stack
+                              direction="row"
+                              justifyContent="space-between"
+                              alignItems="center"
+                              sx={{ borderBottom: '1px solid', borderColor: 'divider', pb: 1.5, mb: 2 }}
+                            >
+                              <Typography variant="h4" sx={{ color: '#3A3469' }}>
+                                {small.category_small_name}
+                              </Typography>
+                              <Stack direction="row" spacing={1}>
+                                <Button
+                                  size="small"
+                                  startIcon={<MoreTimeIcon />}
+                                  onClick={() =>
+                                    setSkillDialogState({ largeId, smallId: small.category_small_id })
+                                  }
+                                  sx={{
+                                    bgcolor: '#F2E300',
+                                    color: '#6B6400',
+                                    borderRadius: 999,
+                                    px: 2,
+                                    '&:hover': { bgcolor: '#D7CA00' },
+                                  }}
+                                >
+                                  シフト追加
+                                </Button>
+                                <IconButton
+                                  size="small"
+                                  onClick={() => removeSmallCategory(largeId, small.category_small_id)}
+                                  sx={{ color: 'text.secondary' }}
+                                >
+                                  <DeleteIcon fontSize="small" />
+                                </IconButton>
+                              </Stack>
+                            </Stack>
 
-        <Paper sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1, overflow: 'hidden' }} elevation={0}>
-          <Table>
-            <TableHead>
-              <TableRow sx={{ bgcolor: '#524B90' }}>
-                {['日付', '要員ID', '要員名', '希望開始時間', '希望終了時間', '操作'].map((h) => (
-                  <TableCell
-                    key={h}
-                    sx={{
-                      color: '#FFFFFF',
-                      fontWeight: 600,
-                      fontSize: '14px',
-                      letterSpacing: '0.05em',
-                      textAlign: h === '操作' ? 'center' : 'left',
-                    }}
-                  >
-                    {h}
-                  </TableCell>
-                ))}
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {(requests ?? []).map((req) => (
-                <TableRow key={req.id} hover>
-                  <TableCell>
-                    <TextField
-                      type="text"
-                      value={req.date}
-                      size="small"
-                      onChange={(e) => handleUpdateRequest(req.id, { date: e.target.value })}
-                      sx={{ width: 140 }}
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <Select
-                      size="small"
-                      value={req.employee_id}
-                      onChange={(e) => handleEmployeeChange(req.id, e.target.value)}
-                      sx={{ minWidth: 130 }}
-                    >
-                      {(employees ?? []).map((emp) => (
-                        <MenuItem key={emp.id} value={emp.id}>
-                          {emp.id}
-                        </MenuItem>
-                      ))}
-                    </Select>
-                  </TableCell>
-                  <TableCell>{req.employee_name}</TableCell>
-                  <TableCell>
-                    <TextField
-                      type="time"
-                      size="small"
-                      value={req.preferred_start}
-                      onChange={(e) => handleUpdateRequest(req.id, { preferred_start: e.target.value })}
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <TextField
-                      type="time"
-                      size="small"
-                      value={req.preferred_end}
-                      onChange={(e) => handleUpdateRequest(req.id, { preferred_end: e.target.value })}
-                    />
-                  </TableCell>
-                  <TableCell align="center">
-                    <IconButton color="error" size="small" onClick={() => handleRemoveRequest(req.id)}>
-                      <DeleteOutlineIcon />
-                    </IconButton>
-                  </TableCell>
-                </TableRow>
-              ))}
-              <TableRow>
-                <TableCell colSpan={6} sx={{ p: 0 }}>
-                  <Button
-                    fullWidth
-                    startIcon={<AddCircleIcon />}
-                    onClick={handleAddRequest}
-                    sx={{
-                      py: 2,
-                      color: 'text.secondary',
-                      fontWeight: 600,
-                      '&:hover': { color: 'primary.main', bgcolor: 'rgba(82,75,144,0.04)' },
-                    }}
-                  >
-                    シフト希望を追加する
-                  </Button>
-                </TableCell>
-              </TableRow>
-            </TableBody>
-          </Table>
+                            {small.skills.length === 0 ? (
+                              <Typography sx={{ color: 'text.secondary', textAlign: 'center', py: 2 }}>
+                                「シフト追加」からスキル配置を追加してください。
+                              </Typography>
+                            ) : (
+                              <Grid container spacing={2}>
+                                {small.skills.map((sk) => {
+                                  const isEditing = editingSkillId === sk.id;
+                                  return (
+                                    <Grid item xs={12} sm={6} md={4} key={sk.id}>
+                                      <Card
+                                        sx={{
+                                          borderLeft: `4px solid ${color}`,
+                                          height: '100%',
+                                          position: 'relative',
+                                        }}
+                                      >
+                                        <CardContent>
+                                          <Typography
+                                            sx={{
+                                              fontSize: '16px',
+                                              fontWeight: 700,
+                                              mb: 1,
+                                              color: 'primary.main',
+                                            }}
+                                          >
+                                            {skillMap.get(sk.skill_id) ?? sk.skill_id}
+                                          </Typography>
+                                          <Typography sx={{ fontWeight: 600, color: 'text.primary', mb: 1 }}>
+                                            {sk.start_time}〜{sk.end_time}
+                                          </Typography>
+                                          <Stack
+                                            direction="row"
+                                            justifyContent="flex-end"
+                                            alignItems="center"
+                                            sx={{ mb: 1 }}
+                                          >
+                                            {isEditing ? (
+                                              <TextField
+                                                type="number"
+                                                size="small"
+                                                value={editingCount}
+                                                onChange={(e) =>
+                                                  setEditingCount(Math.max(1, Number(e.target.value)))
+                                                }
+                                                inputProps={{ min: 1, style: { width: 50, textAlign: 'right' } }}
+                                              />
+                                            ) : (
+                                              <Box
+                                                component="span"
+                                                sx={{
+                                                  bgcolor: '#C6BFFF',
+                                                  color: '#180D54',
+                                                  px: 1,
+                                                  py: 0.25,
+                                                  borderRadius: '4px',
+                                                  fontSize: '12px',
+                                                  fontWeight: 600,
+                                                }}
+                                              >
+                                                {sk.required_count}名
+                                              </Box>
+                                            )}
+                                          </Stack>
+                                          <Stack
+                                            direction="row"
+                                            justifyContent="flex-end"
+                                            spacing={0.5}
+                                            sx={{ mt: 1.5 }}
+                                          >
+                                            {isEditing ? (
+                                              <IconButton
+                                                size="small"
+                                                color="primary"
+                                                onClick={() => {
+                                                  updateSkillCount(
+                                                    largeId,
+                                                    small.category_small_id,
+                                                    sk.id,
+                                                    editingCount
+                                                  );
+                                                  setEditingSkillId(null);
+                                                }}
+                                              >
+                                                <SaveIcon fontSize="small" />
+                                              </IconButton>
+                                            ) : (
+                                              <IconButton
+                                                size="small"
+                                                onClick={() => {
+                                                  setEditingSkillId(sk.id);
+                                                  setEditingCount(sk.required_count);
+                                                }}
+                                                sx={{ color: 'text.secondary' }}
+                                              >
+                                                <EditIcon fontSize="small" />
+                                              </IconButton>
+                                            )}
+                                            <IconButton
+                                              size="small"
+                                              onClick={() => removeSkill(largeId, small.category_small_id, sk.id)}
+                                              sx={{ color: 'text.secondary' }}
+                                            >
+                                              <DeleteIcon fontSize="small" />
+                                            </IconButton>
+                                          </Stack>
+                                        </CardContent>
+                                      </Card>
+                                    </Grid>
+                                  );
+                                })}
+                              </Grid>
+                            )}
+                          </Paper>
+                        );
+                      })}
+                    </Stack>
+                  </Paper>
+                );
+              })}
+            </Stack>
+
+            <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 4 }}>
+              <Button
+                variant="contained"
+                startIcon={<CheckCircleIcon />}
+                onClick={handleReflect}
+                sx={{
+                  bgcolor: '#F2E300',
+                  color: '#6B6400',
+                  '&:hover': { bgcolor: '#D7CA00' },
+                  px: 4,
+                  fontWeight: 700,
+                  fontSize: '16px',
+                }}
+              >
+                反映
+              </Button>
+            </Box>
+          </Box>
         </Paper>
       </Box>
 
@@ -328,16 +584,215 @@ export default function CreateShiftPage() {
         シフト作成
       </Fab>
 
-      <Backdrop open={loading} sx={{ zIndex: (t) => t.zIndex.modal + 1, color: '#fff', flexDirection: 'column', gap: 2 }}>
+      <Backdrop
+        open={loading}
+        sx={{ zIndex: (t) => t.zIndex.modal + 1, color: '#fff', flexDirection: 'column', gap: 2 }}
+      >
         <CircularProgress color="inherit" />
         <Typography sx={{ color: '#fff' }}>シフトを作成しています...</Typography>
       </Backdrop>
 
-      <SetTaskDialog
-        open={setTaskOpen}
-        onClose={() => setSetTaskOpen(false)}
-        onApplied={(iso) => setTargetDate(iso)}
+      <LargeCategoryDialog
+        open={largeDialogOpen}
+        onClose={() => setLargeDialogOpen(false)}
+        items={availableLargeCategories}
+        onSelect={addLargeCategory}
+      />
+
+      <SmallCategoryDialog
+        largeId={smallDialogForLarge}
+        categories={categories ?? []}
+        existing={taskConfig}
+        onClose={() => setSmallDialogForLarge(null)}
+        onSelect={addSmallCategory}
+      />
+
+      <SkillDialog
+        state={skillDialogState}
+        skills={skills ?? []}
+        onClose={() => setSkillDialogState(null)}
+        onSubmit={(largeId, smallId, cfg) => addSkillConfig(largeId, smallId, cfg)}
       />
     </Box>
+  );
+}
+
+interface LargeDialogProps {
+  open: boolean;
+  onClose: () => void;
+  items: Category[];
+  onSelect: (id: string) => void;
+}
+
+function LargeCategoryDialog({ open, onClose, items, onSelect }: LargeDialogProps) {
+  return (
+    <Dialog open={open} onClose={onClose} maxWidth="xs" fullWidth>
+      <DialogTitle>大カテゴリ選択</DialogTitle>
+      <DialogContent dividers>
+        {items.length === 0 ? (
+          <Typography sx={{ color: 'text.secondary', py: 2, textAlign: 'center' }}>
+            追加可能な大カテゴリはありません。
+          </Typography>
+        ) : (
+          <List>
+            {items.map((c) => (
+              <ListItemButton key={c.id} onClick={() => onSelect(c.id)}>
+                <Box sx={{ width: 14, height: 14, bgcolor: c.color, borderRadius: '4px', mr: 2 }} />
+                <ListItemText primary={c.name} secondary={c.id} />
+              </ListItemButton>
+            ))}
+          </List>
+        )}
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={onClose}>閉じる</Button>
+      </DialogActions>
+    </Dialog>
+  );
+}
+
+interface SmallDialogProps {
+  largeId: string | null;
+  categories: Category[];
+  existing: TaskConfig;
+  onClose: () => void;
+  onSelect: (largeId: string, smallId: string, smallName: string) => void;
+}
+
+function SmallCategoryDialog({ largeId, categories, existing, onClose, onSelect }: SmallDialogProps) {
+  const cat = largeId ? categories.find((c) => c.id === largeId) : null;
+  const existingSmall = largeId ? existing[largeId] ?? [] : [];
+  const remaining = (cat?.sub_categories ?? []).filter(
+    (sc) => !existingSmall.some((s) => s.category_small_id === sc.id)
+  );
+
+  return (
+    <Dialog open={Boolean(largeId)} onClose={onClose} maxWidth="xs" fullWidth>
+      <DialogTitle>小カテゴリ選択{cat ? ` - ${cat.name}` : ''}</DialogTitle>
+      <DialogContent dividers>
+        {remaining.length === 0 ? (
+          <Typography sx={{ color: 'text.secondary', py: 2, textAlign: 'center' }}>
+            追加可能な小カテゴリはありません。
+          </Typography>
+        ) : (
+          <List>
+            {remaining.map((sc) => (
+              <ListItemButton key={sc.id} onClick={() => largeId && onSelect(largeId, sc.id, sc.name)}>
+                <Box
+                  sx={{
+                    width: 14,
+                    height: 14,
+                    bgcolor: getCategorySmallColor(sc.id),
+                    borderRadius: '4px',
+                    mr: 2,
+                  }}
+                />
+                <ListItemText primary={sc.name} secondary={sc.id} />
+              </ListItemButton>
+            ))}
+          </List>
+        )}
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={onClose}>閉じる</Button>
+      </DialogActions>
+    </Dialog>
+  );
+}
+
+interface SkillDialogProps {
+  state: { largeId: string; smallId: string } | null;
+  skills: Skill[];
+  onClose: () => void;
+  onSubmit: (largeId: string, smallId: string, cfg: Omit<SkillConfig, 'id'>) => void;
+}
+
+function SkillDialog({ state, skills, onClose, onSubmit }: SkillDialogProps) {
+  const [skillId, setSkillId] = useState<string>('');
+  const [startTime, setStartTime] = useState('09:00');
+  const [endTime, setEndTime] = useState('17:00');
+  const [count, setCount] = useState(1);
+
+  useEffect(() => {
+    if (state) {
+      setSkillId(skills[0]?.id ?? '');
+      setStartTime('09:00');
+      setEndTime('17:00');
+      setCount(1);
+    }
+  }, [state, skills]);
+
+  if (!state) return null;
+
+  return (
+    <Dialog open onClose={onClose} maxWidth="xs" fullWidth>
+      <DialogTitle>シフト追加</DialogTitle>
+      <DialogContent dividers>
+        <Stack spacing={2.5} sx={{ pt: 1 }}>
+          <Box>
+            <Typography sx={{ fontSize: '14px', fontWeight: 600, mb: 1 }}>スキル</Typography>
+            <Select size="small" fullWidth value={skillId} onChange={(e) => setSkillId(e.target.value)}>
+              {skills.map((s) => (
+                <MenuItem key={s.id} value={s.id}>
+                  {s.name}
+                </MenuItem>
+              ))}
+            </Select>
+          </Box>
+          <Stack direction="row" spacing={2}>
+            <Box sx={{ flex: 1 }}>
+              <Typography sx={{ fontSize: '14px', fontWeight: 600, mb: 1 }}>開始時間</Typography>
+              <TextField
+                type="time"
+                size="small"
+                fullWidth
+                value={startTime}
+                onChange={(e) => setStartTime(e.target.value)}
+              />
+            </Box>
+            <Box sx={{ flex: 1 }}>
+              <Typography sx={{ fontSize: '14px', fontWeight: 600, mb: 1 }}>終了時間</Typography>
+              <TextField
+                type="time"
+                size="small"
+                fullWidth
+                value={endTime}
+                onChange={(e) => setEndTime(e.target.value)}
+              />
+            </Box>
+          </Stack>
+          <Box>
+            <Typography sx={{ fontSize: '14px', fontWeight: 600, mb: 1 }}>必要人数</Typography>
+            <TextField
+              type="number"
+              size="small"
+              fullWidth
+              value={count}
+              onChange={(e) => setCount(Math.max(1, Number(e.target.value)))}
+              inputProps={{ min: 1 }}
+            />
+          </Box>
+        </Stack>
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={onClose}>キャンセル</Button>
+        <Button
+          variant="contained"
+          disabled={!skillId}
+          onClick={() => {
+            const skillLabel = skills.find((s) => s.id === skillId)?.name ?? '';
+            onSubmit(state.largeId, state.smallId, {
+              skill_id: skillId,
+              start_time: startTime,
+              end_time: endTime,
+              task_name: skillLabel,
+              required_count: count,
+            });
+          }}
+        >
+          追加
+        </Button>
+      </DialogActions>
+    </Dialog>
   );
 }

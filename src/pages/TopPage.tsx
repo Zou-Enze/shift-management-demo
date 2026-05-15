@@ -1,6 +1,7 @@
 import { Box, Grid, Card, CardActionArea, Typography } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/EditOutlined';
+import GroupsIcon from '@mui/icons-material/Groups';
 import { useNavigate } from 'react-router-dom';
 
 interface ActionCardProps {
@@ -87,6 +88,13 @@ export default function TopPage() {
           </Grid>
           <Grid item xs={12} md={6}>
             <ActionCard icon={<EditIcon sx={{ fontSize: 40 }} />} label="既存シフト調整" disabled />
+          </Grid>
+          <Grid item xs={12} md={6}>
+            <ActionCard
+              icon={<GroupsIcon sx={{ fontSize: 40 }} />}
+              label="シフト希望入力"
+              onClick={() => navigate('/shift/request')}
+            />
           </Grid>
         </Grid>
       </Box>

@@ -19,6 +19,21 @@
     { "id": "EMP-017", "name": "斎藤 龍一",   "skills": ["SKL-001", "SKL-003"] },
     { "id": "EMP-018", "name": "橋本 瑠璃",   "skills": ["SKL-002", "SKL-003"] },
     { "id": "EMP-019", "name": "前田 俊介",   "skills": ["SKL-001"] },
-    { "id": "EMP-020", "name": "藤田 由美",   "skills": ["SKL-002", "SKL-003"] }
+    { "id": "EMP-020", "name": "藤田 由美",   "skills": ["SKL-002", "SKL-003"] },
+    { "id": "EMP-021", "name": "高橋 誠",     "skills": ["SKL-001", "SKL-002"] },
+    { "id": "EMP-022", "name": "西村 陽子",   "skills": ["SKL-002", "SKL-003"] },
+    { "id": "EMP-023", "name": "村田 健",     "skills": ["SKL-001"] },
+    { "id": "EMP-024", "name": "岡田 美穂",   "skills": ["SKL-001", "SKL-003"] },
+    { "id": "EMP-025", "name": "長谷川 拓",   "skills": ["SKL-002"] },
+    { "id": "EMP-026", "name": "石川 早苗",   "skills": ["SKL-001", "SKL-002", "SKL-003"] },
+    { "id": "EMP-027", "name": "森田 雄太",   "skills": ["SKL-003"] },
+    { "id": "EMP-028", "name": "坂本 由香",   "skills": ["SKL-001", "SKL-002"] },
+    { "id": "EMP-029", "name": "宮本 浩",     "skills": ["SKL-002", "SKL-003"] },
+    { "id": "EMP-030", "name": "工藤 さとみ", "skills": ["SKL-001"] },
+    { "id": "EMP-031", "name": "後藤 隆",     "skills": ["SKL-001", "SKL-003"] },
+    { "id": "EMP-032", "name": "小野 千恵",   "skills": ["SKL-002"] },
+    { "id": "EMP-033", "name": "藤原 修",     "skills": ["SKL-001", "SKL-002"] },
+    { "id": "EMP-034", "name": "池田 晴美",   "skills": ["SKL-003"] },
+    { "id": "EMP-035", "name": "大野 康介",   "skills": ["SKL-001", "SKL-002", "SKL-003"] }
   ]
 }

@@ -5,6 +5,7 @@ import { seedIfEmpty } from './db/seed';
 import Layout from './components/Layout';
 import TopPage from './pages/TopPage';
 import CreateShiftPage from './pages/CreateShiftPage';
+import ShiftRequestPage from './pages/ShiftRequestPage';
 import ShiftResultPage from './pages/ShiftResultPage';
 import MasterPage from './pages/MasterPage';
 
@@ -42,6 +43,7 @@ export default function App() {
           <Route index element={<Navigate to="/home" replace />} />
           <Route path="home" element={<TopPage />} />
           <Route path="shift/create" element={<CreateShiftPage />} />
+          <Route path="shift/request" element={<ShiftRequestPage />} />
           <Route path="shift/result" element={<ShiftResultPage />} />
           <Route path="master" element={<MasterPage />} />
           <Route path="*" element={<Navigate to="/home" replace />} />
