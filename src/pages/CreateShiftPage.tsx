@@ -292,12 +292,7 @@ export default function CreateShiftPage() {
     if (rows.length > 0) await db.task_rows.bulkPut(rows);
   };
 
-  const handleReflect = async () => {
-    const currentMode = modes?.find((m) => m.id === taskModeId);
-    if (!currentMode || !currentMode.is_custom) {
-      await doReflect();
-      return;
-    }
+  const handleReflect = () => {
     setNewWorkloadName('');
     setSaveDialogOpen(true);
   };
