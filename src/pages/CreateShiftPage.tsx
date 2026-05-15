@@ -36,6 +36,7 @@ import SaveIcon from '@mui/icons-material/SaveOutlined';
 import DeleteIcon from '@mui/icons-material/DeleteOutline';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import BoltIcon from '@mui/icons-material/Bolt';
+import BookmarkAddIcon from '@mui/icons-material/BookmarkAdd';
 import { db } from '../db/database';
 import { getCategorySmallColor } from '../constants/categoryColors';
 import { isoDateToSlash, slashDateToIso, todayIsoDate } from '../utils/taskDateTime';
@@ -71,7 +72,7 @@ export default function CreateShiftPage() {
   const existingTaskRows = useLiveQuery(() => db.task_rows.toArray(), []) as TaskRow[] | undefined;
 
   const [taskTargetDateIso, setTaskTargetDateIso] = useState<string>(todayIsoDate());
-  const [taskModeId, setTaskModeId] = useState<string>('MODE-01');
+  const [taskModeId, setTaskModeId] = useState<string>('');
   const [selectedLargeIds, setSelectedLargeIds] = useState<string[]>([]);
   const [taskConfig, setTaskConfig] = useState<TaskConfig>({});
   const [hydrated, setHydrated] = useState(false);
@@ -83,59 +84,119 @@ export default function CreateShiftPage() {
   const [editingSkillId, setEditingSkillId] = useState<string | null>(null);
   const [editingCount, setEditingCount] = useState<number>(1);
 
-  useEffect(() => {
-    if (hydrated) return;
-    if (!categories || !existingTaskRows) return;
-    if (existingTaskRows.length === 0) {
-      setTaskTargetDateIso(todayIsoDate());
-      setHydrated(true);
-      return;
-    }
-    const subNameMap = new Map<string, string>();
-    const subToLarge = new Map<string, string>();
-    categories.forEach((c) =>
-      c.sub_categories.forEach((sc) => {
-        subNameMap.set(sc.id, sc.name);
-        subToLarge.set(sc.id, c.id);
-      })
-    );
-    const cfg: TaskConfig = {};
-    const largeSet = new Set<string>();
-    existingTaskRows.forEach((row) => {
-      const largeId = row.category_large_id || subToLarge.get(row.category_small_id) || '';
-      if (!largeId) return;
-      largeSet.add(largeId);
-      if (!cfg[largeId]) cfg[largeId] = [];
-      let small = cfg[largeId].find((s) => s.category_small_id === row.category_small_id);
-      if (!small) {
-        small = {
-          category_small_id: row.category_small_id,
-          category_small_name: subNameMap.get(row.category_small_id) ?? row.category_small_id,
-          skills: [],
-        };
-        cfg[largeId].push(small);
-      }
-      small.skills.push({
-        id: row.id,
-        skill_id: row.skill_id,
-        start_time: row.start_time,
-        end_time: row.end_time,
-        task_name: row.task_name,
-        required_count: row.required_count,
-      });
-    });
-    setSelectedLargeIds(Array.from(largeSet));
-    setTaskConfig(cfg);
-    const td0 = existingTaskRows[0]?.task_date;
-    setTaskTargetDateIso(td0 && td0.includes('/') ? slashDateToIso(td0) : todayIsoDate());
-    setHydrated(true);
-  }, [categories, existingTaskRows, hydrated]);
+  const [saveDialogOpen, setSaveDialogOpen] = useState(false);
+  const [newWorkloadName, setNewWorkloadName] = useState('');
 
   const skillMap = useMemo(() => {
     const m = new Map<string, string>();
     (skills ?? []).forEach((s) => m.set(s.id, s.name));
     return m;
   }, [skills]);
+
+  const buildConfigFromWorkload = (workload: Mode) => {
+    if (!workload.preset_categories || !categories) return null;
+
+    const newSelectedLargeIds: string[] = [];
+    const newTaskConfig: TaskConfig = {};
+
+    workload.preset_categories.forEach((large) => {
+      newSelectedLargeIds.push(large.category_large_id);
+      const cat = categories.find((c) => c.id === large.category_large_id);
+
+      newTaskConfig[large.category_large_id] = large.small_categories.map((small) => {
+        const subCat = cat?.sub_categories.find((sc) => sc.id === small.category_small_id);
+        return {
+          category_small_id: small.category_small_id,
+          category_small_name: subCat?.name ?? small.category_small_id,
+          skills: small.tasks.map((task) => ({
+            id: uid('SK'),
+            skill_id: task.skill_id,
+            start_time: task.start_time,
+            end_time: task.end_time,
+            task_name: skillMap.get(task.skill_id) ?? task.skill_id,
+            required_count: task.required_count,
+          })),
+        };
+      });
+    });
+
+    return { newSelectedLargeIds, newTaskConfig };
+  };
+
+  useEffect(() => {
+    if (hydrated) return;
+    if (!categories || !modes || !skills) return;
+
+    if (existingTaskRows && existingTaskRows.length > 0) {
+      const subNameMap = new Map<string, string>();
+      const subToLarge = new Map<string, string>();
+      categories.forEach((c) =>
+        c.sub_categories.forEach((sc) => {
+          subNameMap.set(sc.id, sc.name);
+          subToLarge.set(sc.id, c.id);
+        })
+      );
+      const cfg: TaskConfig = {};
+      const largeSet = new Set<string>();
+      existingTaskRows.forEach((row) => {
+        const largeId = row.category_large_id || subToLarge.get(row.category_small_id) || '';
+        if (!largeId) return;
+        largeSet.add(largeId);
+        if (!cfg[largeId]) cfg[largeId] = [];
+        let small = cfg[largeId].find((s) => s.category_small_id === row.category_small_id);
+        if (!small) {
+          small = {
+            category_small_id: row.category_small_id,
+            category_small_name: subNameMap.get(row.category_small_id) ?? row.category_small_id,
+            skills: [],
+          };
+          cfg[largeId].push(small);
+        }
+        small.skills.push({
+          id: row.id,
+          skill_id: row.skill_id,
+          start_time: row.start_time,
+          end_time: row.end_time,
+          task_name: row.task_name,
+          required_count: row.required_count,
+        });
+      });
+      setSelectedLargeIds(Array.from(largeSet));
+      setTaskConfig(cfg);
+      const td0 = existingTaskRows[0]?.task_date;
+      setTaskTargetDateIso(td0 && td0.includes('/') ? slashDateToIso(td0) : todayIsoDate());
+      setHydrated(true);
+      return;
+    }
+
+    const defaultMode = modes.find((m) => m.id === 'WL-01') ?? modes[0];
+    if (defaultMode) {
+      setTaskModeId(defaultMode.id);
+      const result = buildConfigFromWorkload(defaultMode);
+      if (result) {
+        setSelectedLargeIds(result.newSelectedLargeIds);
+        setTaskConfig(result.newTaskConfig);
+      }
+    }
+    setHydrated(true);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [categories, existingTaskRows, hydrated, modes, skills]);
+
+  const handleModeChange = (modeId: string) => {
+    setTaskModeId(modeId);
+    if (!modeId) {
+      setSelectedLargeIds([]);
+      setTaskConfig({});
+      return;
+    }
+    const workload = modes?.find((m) => m.id === modeId);
+    if (!workload || !workload.preset_categories) return;
+    const result = buildConfigFromWorkload(workload);
+    if (result) {
+      setSelectedLargeIds(result.newSelectedLargeIds);
+      setTaskConfig(result.newTaskConfig);
+    }
+  };
 
   const availableLargeCategories = useMemo(
     () => (categories ?? []).filter((c) => !selectedLargeIds.includes(c.id)),
@@ -208,7 +269,7 @@ export default function CreateShiftPage() {
     }));
   };
 
-  const handleReflect = async () => {
+  const doReflect = async () => {
     const rows: TaskRow[] = [];
     Object.entries(taskConfig).forEach(([largeId, smalls]) => {
       smalls.forEach((small) => {
@@ -229,6 +290,41 @@ export default function CreateShiftPage() {
     });
     await db.task_rows.clear();
     if (rows.length > 0) await db.task_rows.bulkPut(rows);
+  };
+
+  const handleReflect = () => {
+    setNewWorkloadName('');
+    setSaveDialogOpen(true);
+  };
+
+  const handleSaveAndReflect = async () => {
+    if (newWorkloadName.trim()) {
+      const preset = selectedLargeIds.map((largeId) => ({
+        category_large_id: largeId,
+        small_categories: (taskConfig[largeId] ?? []).map((small) => ({
+          category_small_id: small.category_small_id,
+          tasks: small.skills.map((sk) => ({
+            skill_id: sk.skill_id,
+            start_time: sk.start_time,
+            end_time: sk.end_time,
+            required_count: sk.required_count,
+          })),
+        })),
+      }));
+      await db.modes.add({
+        id: `WL-${Date.now()}`,
+        name: newWorkloadName.trim(),
+        preset_categories: preset,
+        is_custom: true,
+      });
+    }
+    setSaveDialogOpen(false);
+    await doReflect();
+  };
+
+  const handleSkipAndReflect = async () => {
+    setSaveDialogOpen(false);
+    await doReflect();
   };
 
   const handleSubmit = () => {
@@ -270,17 +366,25 @@ export default function CreateShiftPage() {
               justifyContent="space-between"
               sx={{ mb: 4 }}
             >
-              <FormControl size="small" sx={{ minWidth: 160 }}>
-                <InputLabel id="task-mode-label">モード</InputLabel>
+              <FormControl size="small" sx={{ minWidth: 200 }}>
+                <InputLabel id="task-workload-label">作業量</InputLabel>
                 <Select
-                  labelId="task-mode-label"
-                  label="モード"
+                  labelId="task-workload-label"
+                  label="作業量"
                   value={taskModeId}
-                  onChange={(e) => setTaskModeId(String(e.target.value))}
+                  onChange={(e) => handleModeChange(String(e.target.value))}
                 >
+                  <MenuItem value="">
+                    <em style={{ color: '#9e9e9e' }}>選択なし</em>
+                  </MenuItem>
                   {(modes ?? []).map((m) => (
                     <MenuItem key={m.id} value={m.id}>
-                      {m.name}
+                      <Stack direction="row" alignItems="center" spacing={1}>
+                        {m.is_custom && (
+                          <BookmarkAddIcon sx={{ fontSize: 16, color: 'primary.light', flexShrink: 0 }} />
+                        )}
+                        <span>{m.name}</span>
+                      </Stack>
                     </MenuItem>
                   ))}
                 </Select>
@@ -539,28 +643,48 @@ export default function CreateShiftPage() {
                         );
                       })}
                     </Stack>
+
+                    <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 4 }}>
+                      <Button
+                        variant="contained"
+                        startIcon={<CheckCircleIcon />}
+                        onClick={handleReflect}
+                        sx={{
+                          bgcolor: '#F2E300',
+                          color: '#6B6400',
+                          '&:hover': { bgcolor: '#D7CA00' },
+                          px: 4,
+                          fontWeight: 700,
+                          fontSize: '16px',
+                        }}
+                      >
+                        反映
+                      </Button>
+                    </Box>
                   </Paper>
                 );
               })}
             </Stack>
 
-            <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 4 }}>
-              <Button
-                variant="contained"
-                startIcon={<CheckCircleIcon />}
-                onClick={handleReflect}
-                sx={{
-                  bgcolor: '#F2E300',
-                  color: '#6B6400',
-                  '&:hover': { bgcolor: '#D7CA00' },
-                  px: 4,
-                  fontWeight: 700,
-                  fontSize: '16px',
-                }}
-              >
-                反映
-              </Button>
-            </Box>
+            {selectedLargeIds.length === 0 && (
+              <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 4 }}>
+                <Button
+                  variant="contained"
+                  startIcon={<CheckCircleIcon />}
+                  onClick={handleReflect}
+                  sx={{
+                    bgcolor: '#F2E300',
+                    color: '#6B6400',
+                    '&:hover': { bgcolor: '#D7CA00' },
+                    px: 4,
+                    fontWeight: 700,
+                    fontSize: '16px',
+                  }}
+                >
+                  反映
+                </Button>
+              </Box>
+            )}
           </Box>
         </Paper>
       </Box>
@@ -612,6 +736,15 @@ export default function CreateShiftPage() {
         skills={skills ?? []}
         onClose={() => setSkillDialogState(null)}
         onSubmit={(largeId, smallId, cfg) => addSkillConfig(largeId, smallId, cfg)}
+      />
+
+      <SaveWorkloadDialog
+        open={saveDialogOpen}
+        value={newWorkloadName}
+        onChange={setNewWorkloadName}
+        onSave={handleSaveAndReflect}
+        onSkip={handleSkipAndReflect}
+        onCancel={() => setSaveDialogOpen(false)}
       />
     </Box>
   );
@@ -791,6 +924,68 @@ function SkillDialog({ state, skills, onClose, onSubmit }: SkillDialogProps) {
           }}
         >
           追加
+        </Button>
+      </DialogActions>
+    </Dialog>
+  );
+}
+
+interface SaveWorkloadDialogProps {
+  open: boolean;
+  value: string;
+  onChange: (v: string) => void;
+  onSave: () => void;
+  onSkip: () => void;
+  onCancel: () => void;
+}
+
+function SaveWorkloadDialog({ open, value, onChange, onSave, onSkip, onCancel }: SaveWorkloadDialogProps) {
+  return (
+    <Dialog open={open} onClose={onCancel} maxWidth="xs" fullWidth>
+      <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+        <BookmarkAddIcon sx={{ color: 'primary.main' }} />
+        作業量として保存
+      </DialogTitle>
+      <DialogContent dividers>
+        <Typography sx={{ fontSize: '14px', color: 'text.secondary', mb: 2 }}>
+          現在の設定内容を新しい「作業量」として保存できます。
+          名前を入力して「保存して反映」を選ぶと、次回からドロップダウンで選択できるようになります。
+        </Typography>
+        <TextField
+          label="作業量の名前"
+          size="small"
+          fullWidth
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder="例: 繁忙期特別、週末シフト など"
+          autoFocus
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && value.trim()) onSave();
+          }}
+        />
+      </DialogContent>
+      <DialogActions sx={{ flexDirection: 'column', gap: 1, p: 2 }}>
+        <Button
+          variant="contained"
+          fullWidth
+          startIcon={<BookmarkAddIcon />}
+          onClick={onSave}
+          disabled={!value.trim()}
+          sx={{ bgcolor: 'primary.main', color: '#fff', fontWeight: 700 }}
+        >
+          保存して反映
+        </Button>
+        <Button
+          variant="outlined"
+          fullWidth
+          startIcon={<CheckCircleIcon />}
+          onClick={onSkip}
+          sx={{ color: '#6B6400', borderColor: '#F2E300', bgcolor: '#FFFDE7' }}
+        >
+          保存せずに反映
+        </Button>
+        <Button fullWidth onClick={onCancel} sx={{ color: 'text.secondary' }}>
+          キャンセル
         </Button>
       </DialogActions>
     </Dialog>
