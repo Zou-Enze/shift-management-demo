@@ -23,7 +23,7 @@ import {
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db/database';
-import type { Category, Mode, Skill } from '../types';
+import type { Category, Skill } from '../types';
 import AdjustTable from './shiftAdjust/AdjustTable';
 import type { AdjustEmployee, AdjustRow } from './shiftAdjust/adjustTypes';
 
@@ -62,7 +62,6 @@ export default function ShiftAdjustEditPage() {
 
   const categories = useLiveQuery(() => db.categories.toArray(), []) as Category[] | undefined;
   const skills = useLiveQuery(() => db.skills.toArray(), []) as Skill[] | undefined;
-  const modes = useLiveQuery(() => db.modes.toArray(), []) as Mode[] | undefined;
 
   const [rows, setRows] = useState<AdjustRow[]>(state?.rows ?? []);
   const [dialog, setDialog] = useState<DialogState | null>(null);
@@ -73,36 +72,7 @@ export default function ShiftAdjustEditPage() {
     return cat?.sub_categories ?? [];
   }, [dialog, categories]);
 
-  const availableSkills = useMemo(() => {
-    if (!skills || !dialog || !categories || !modes) return [];
-
-    // 選択中のカテゴリ小の ID を取得
-    let categorySmallId: string | undefined;
-    for (const cat of categories) {
-      const sc = cat.sub_categories.find((s) => s.name === dialog.newTask.categorySmall);
-      if (sc) { categorySmallId = sc.id; break; }
-    }
-    if (!categorySmallId) return [];
-
-    // モードDBからカテゴリ小に紐付くスキルIDを収集
-    const skillIds = new Set<string>();
-    for (const mode of modes) {
-      for (const largeCat of (mode.preset_categories ?? [])) {
-        for (const smallCat of largeCat.small_categories) {
-          if (smallCat.category_small_id === categorySmallId) {
-            smallCat.tasks.forEach((t) => skillIds.add(t.skill_id));
-          }
-        }
-      }
-    }
-
-    // 既にrows内に存在するスキルを除外
-    const usedSkills = rows
-      .filter((r) => r.categorySmall === dialog.newTask.categorySmall)
-      .map((r) => r.skill);
-
-    return skills.filter((s) => skillIds.has(s.id) && !usedSkills.includes(s.name));
-  }, [skills, rows, dialog, categories, modes]);
+  const availableSkills = skills ?? [];
 
   const handleRowChange = (row: AdjustRow) => {
     setDialog({
