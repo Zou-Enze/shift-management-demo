@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -9,7 +9,11 @@ import {
   DialogContent,
   DialogTitle,
   Divider,
+  FormControl,
   FormControlLabel,
+  InputLabel,
+  MenuItem,
+  Select,
   Stack,
   Tab,
   Tabs,
@@ -17,6 +21,9 @@ import {
   Typography,
 } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import { useLiveQuery } from 'dexie-react-hooks';
+import { db } from '../db/database';
+import type { Category, Skill } from '../types';
 import AdjustTable from './shiftAdjust/AdjustTable';
 import type { AdjustEmployee, AdjustRow } from './shiftAdjust/adjustTypes';
 
@@ -42,14 +49,30 @@ interface DialogState {
   absentIds: Set<string>;
 }
 
+const TIME_OPTIONS: string[] = [];
+for (let h = 0; h < 24; h++) {
+  for (const m of [0, 15, 30, 45]) {
+    TIME_OPTIONS.push(`${h}:${String(m).padStart(2, '0')}`);
+  }
+}
+
 export default function ShiftAdjustEditPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const state = location.state as LocationState | null;
   const date = state?.date ?? '';
 
+  const categories = useLiveQuery(() => db.categories.toArray(), []) as Category[] | undefined;
+  const skills = useLiveQuery(() => db.skills.toArray(), []) as Skill[] | undefined;
+
   const [rows, setRows] = useState<AdjustRow[]>(state?.rows ?? []);
   const [dialog, setDialog] = useState<DialogState | null>(null);
+
+  const subCategories = useMemo(() => {
+    if (!dialog || !categories) return [];
+    const cat = categories.find((c) => c.name === dialog.row.categoryLarge);
+    return cat?.sub_categories ?? [];
+  }, [dialog, categories]);
 
   const handleRowChange = (row: AdjustRow) => {
     setDialog({
@@ -205,62 +228,72 @@ export default function ShiftAdjustEditPage() {
           {/* タブ 0: 新しい作業追加 */}
           {dialog?.tab === 0 && (
             <Stack spacing={2}>
-              <TextField
-                label="カテゴリ小"
-                size="small"
-                value={dialog.newTask.categorySmall}
-                onChange={(e) =>
-                  setDialog((d) =>
-                    d ? { ...d, newTask: { ...d.newTask, categorySmall: e.target.value } } : d
-                  )
-                }
-              />
+              <FormControl size="small" fullWidth>
+                <InputLabel>カテゴリ小</InputLabel>
+                <Select
+                  label="カテゴリ小"
+                  value={dialog.newTask.categorySmall}
+                  onChange={(e) =>
+                    setDialog((d) =>
+                      d ? { ...d, newTask: { ...d.newTask, categorySmall: e.target.value } } : d
+                    )
+                  }
+                >
+                  {subCategories.map((sc) => (
+                    <MenuItem key={sc.id} value={sc.name}>{sc.name}</MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
               <Stack direction="row" spacing={2}>
-                <TextField
-                  label="開始時間 (例: 8:00)"
-                  size="small"
-                  fullWidth
-                  placeholder="8:00"
-                  value={dialog.newTask.startTime}
-                  onChange={(e) =>
-                    setDialog((d) =>
-                      d ? { ...d, newTask: { ...d.newTask, startTime: e.target.value } } : d
-                    )
-                  }
-                />
-                <TextField
-                  label="終了時間 (例: 12:00)"
-                  size="small"
-                  fullWidth
-                  placeholder="12:00"
-                  value={dialog.newTask.endTime}
-                  onChange={(e) =>
-                    setDialog((d) =>
-                      d ? { ...d, newTask: { ...d.newTask, endTime: e.target.value } } : d
-                    )
-                  }
-                />
+                <FormControl size="small" fullWidth>
+                  <InputLabel>開始時間</InputLabel>
+                  <Select
+                    label="開始時間"
+                    value={dialog.newTask.startTime}
+                    onChange={(e) =>
+                      setDialog((d) =>
+                        d ? { ...d, newTask: { ...d.newTask, startTime: e.target.value } } : d
+                      )
+                    }
+                  >
+                    {TIME_OPTIONS.map((t) => (
+                      <MenuItem key={t} value={t}>{t}</MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+                <FormControl size="small" fullWidth>
+                  <InputLabel>終了時間</InputLabel>
+                  <Select
+                    label="終了時間"
+                    value={dialog.newTask.endTime}
+                    onChange={(e) =>
+                      setDialog((d) =>
+                        d ? { ...d, newTask: { ...d.newTask, endTime: e.target.value } } : d
+                      )
+                    }
+                  >
+                    {TIME_OPTIONS.map((t) => (
+                      <MenuItem key={t} value={t}>{t}</MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
               </Stack>
-              <TextField
-                label="作業内容"
-                size="small"
-                value={dialog.newTask.taskContent}
-                onChange={(e) =>
-                  setDialog((d) =>
-                    d ? { ...d, newTask: { ...d.newTask, taskContent: e.target.value } } : d
-                  )
-                }
-              />
-              <TextField
-                label="スキル"
-                size="small"
-                value={dialog.newTask.skill}
-                onChange={(e) =>
-                  setDialog((d) =>
-                    d ? { ...d, newTask: { ...d.newTask, skill: e.target.value } } : d
-                  )
-                }
-              />
+              <FormControl size="small" fullWidth>
+                <InputLabel>スキル</InputLabel>
+                <Select
+                  label="スキル"
+                  value={dialog.newTask.skill}
+                  onChange={(e) =>
+                    setDialog((d) =>
+                      d ? { ...d, newTask: { ...d.newTask, skill: e.target.value } } : d
+                    )
+                  }
+                >
+                  {(skills ?? []).map((s) => (
+                    <MenuItem key={s.id} value={s.name}>{s.name}</MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
               <TextField
                 label="要員数"
                 size="small"
