@@ -49,3 +49,39 @@ async function seedModesIfEmpty(): Promise<void> {
   const { workloads } = await fetch('/data/workloads.json').then((r) => r.json()) as { workloads: Mode[] };
   await db.modes.bulkAdd(workloads);
 }
+
+export async function resetDatabase(): Promise<void> {
+  const [cats, skills, workloads, emps, reqs, result] = await Promise.all([
+    fetch('/data/categories.json').then((r) => r.json()) as Promise<{ categories: Category[] }>,
+    fetch('/data/skills.json').then((r) => r.json()) as Promise<{ skills: Skill[] }>,
+    fetch('/data/workloads.json').then((r) => r.json()) as Promise<{ workloads: Mode[] }>,
+    fetch('/data/employees.json').then((r) => r.json()) as Promise<{ employees: Employee[] }>,
+    fetch('/data/shift_requests.json').then((r) => r.json()) as Promise<{
+      shift_requests: ShiftRequest[];
+    }>,
+    fetch('/data/shift_result.json').then((r) => r.json()) as Promise<{
+      shift_result: ShiftResult;
+    }>,
+  ]);
+
+  await db.transaction(
+    'rw',
+    [db.categories, db.skills, db.modes, db.employees, db.shift_requests, db.shift_results, db.task_rows],
+    async () => {
+      await db.categories.clear();
+      await db.skills.clear();
+      await db.modes.clear();
+      await db.employees.clear();
+      await db.shift_requests.clear();
+      await db.shift_results.clear();
+      await db.task_rows.clear();
+
+      await db.categories.bulkAdd(cats.categories);
+      await db.skills.bulkAdd(skills.skills);
+      await db.modes.bulkAdd(workloads.workloads);
+      await db.employees.bulkAdd(emps.employees);
+      await db.shift_requests.bulkAdd(reqs.shift_requests);
+      await db.shift_results.add(result.shift_result);
+    }
+  );
+}
