@@ -196,7 +196,7 @@ export default function AdjustTable({ rows, onRowChange }: Props) {
               boxSizing: 'border-box',
             }}
           >
-            作業内容
+            スキル
           </Box>
           {HOURS.map((h, i) => (
             <Box
@@ -280,14 +280,13 @@ export default function AdjustTable({ rows, onRowChange }: Props) {
                     {task.categorySmall}
                   </Box>
 
-                  {/* 作業内容 / スキル ラベル */}
+                  {/* スキル ラベル */}
                   <Box
                     sx={{
                       gridColumn: 2,
                       gridRow: `${startRow} / ${startRow + rowCount}`,
                       p: '8px 12px',
                       fontSize: '13px',
-                      color: 'text.secondary',
                       borderRight: BD,
                       borderBottom: BD,
                       display: 'flex',
@@ -296,14 +295,9 @@ export default function AdjustTable({ rows, onRowChange }: Props) {
                       boxSizing: 'border-box',
                     }}
                   >
-                    <Box sx={{ fontWeight: 500, color: 'text.primary', fontSize: '12px' }}>
-                      {task.taskContent}
+                    <Box sx={{ fontWeight: 700, color: 'text.primary', fontSize: '13px' }}>
+                      {task.skill}
                     </Box>
-                    {task.skill && (
-                      <Box sx={{ fontSize: '11px', color: 'text.secondary', mt: 0.5 }}>
-                        {task.skill}
-                      </Box>
-                    )}
                   </Box>
 
                   {/* タイムライン行 */}

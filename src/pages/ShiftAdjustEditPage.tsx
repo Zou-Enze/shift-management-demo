@@ -72,6 +72,14 @@ export default function ShiftAdjustEditPage() {
     return cat?.sub_categories ?? [];
   }, [dialog, categories]);
 
+  const availableSkills = useMemo(() => {
+    if (!skills || !dialog) return [];
+    const usedSkills = rows
+      .filter((r) => r.categorySmall === dialog.newTask.categorySmall)
+      .map((r) => r.skill);
+    return skills.filter((s) => !usedSkills.includes(s.name));
+  }, [skills, rows, dialog]);
+
   const handleRowChange = (row: AdjustRow) => {
     setDialog({
       row,
@@ -98,7 +106,7 @@ export default function ShiftAdjustEditPage() {
     setDialog({ ...dialog, tab: newValue });
   };
 
-  const handleAddNewTask = () => {
+  const handleAddNewTask = async () => {
     if (!dialog) return;
     const { newTask, row } = dialog;
     if (!newTask.categorySmall || !newTask.startHour || !newTask.endHour) return;
@@ -106,8 +114,9 @@ export default function ShiftAdjustEditPage() {
     const startTime = `${newTask.startHour}:${newTask.startMinute}`;
     const endTime = `${newTask.endHour}:${newTask.endMinute}`;
     const datePrefix = date ? `${date} ` : '';
+    const newId = `adj-new-${Date.now()}`;
     const newRow: AdjustRow = {
-      id: `adj-new-${Date.now()}`,
+      id: newId,
       categoryLarge: row.categoryLarge,
       categorySmall: newTask.categorySmall,
       startDateTime: `${datePrefix}${startTime}`,
@@ -118,6 +127,24 @@ export default function ShiftAdjustEditPage() {
       assignedEmployees: [],
       absentEmployees: [],
     };
+
+    const cat = categories?.find((c) => c.name === row.categoryLarge);
+    const subCat = cat?.sub_categories.find((sc) => sc.name === newTask.categorySmall);
+    const skillObj = skills?.find((s) => s.name === newTask.skill);
+    if (cat && subCat && skillObj) {
+      await db.task_rows.add({
+        id: newId,
+        category_large_id: cat.id,
+        category_small_id: subCat.id,
+        task_date: date || undefined,
+        start_time: startTime,
+        end_time: endTime,
+        task_name: newTask.taskContent,
+        skill_id: skillObj.id,
+        required_count: newTask.requiredCount,
+      });
+    }
+
     setRows((prev) => {
       const idx = prev.findIndex((r) => r.id === row.id);
       const next = [...prev];
@@ -199,7 +226,7 @@ export default function ShiftAdjustEditPage() {
       </Stack>
 
       <Typography variant="h3" sx={{ color: 'primary.main', mb: 2 }}>
-        既存シフト調整_変更
+        変更箇所入力
       </Typography>
 
       {date && (
@@ -213,7 +240,7 @@ export default function ShiftAdjustEditPage() {
       {/* 変更ダイアログ */}
       <Dialog open={!!dialog} onClose={handleDialogClose} maxWidth="sm" fullWidth>
         <DialogTitle sx={{ fontWeight: 700 }}>
-          変更 — {dialog?.row.categorySmall}
+          変更
         </DialogTitle>
 
         <Tabs
@@ -324,7 +351,7 @@ export default function ShiftAdjustEditPage() {
                     )
                   }
                 >
-                  {(skills ?? []).map((s) => (
+                  {availableSkills.map((s) => (
                     <MenuItem key={s.id} value={s.name}>{s.name}</MenuItem>
                   ))}
                 </Select>
