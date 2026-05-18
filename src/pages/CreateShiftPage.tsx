@@ -41,6 +41,7 @@ import { db } from '../db/database';
 import { getCategorySmallColor } from '../constants/categoryColors';
 import { isoDateToSlash, slashDateToIso, todayIsoDate } from '../utils/taskDateTime';
 import type { Assignment, AssignedEmployee, Category, Skill, TaskRow, Mode } from '../types';
+import ConfirmDialog from '../components/ConfirmDialog';
 
 interface SkillConfig {
   id: string;
@@ -87,6 +88,7 @@ export default function CreateShiftPage() {
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
   const [newWorkloadName, setNewWorkloadName] = useState('');
   const [reflected, setReflected] = useState(false);
+  const [reflectConfirmOpen, setReflectConfirmOpen] = useState(false);
 
   const skillMap = useMemo(() => {
     const m = new Map<string, string>();
@@ -351,7 +353,11 @@ export default function CreateShiftPage() {
     setReflected(true);
   };
 
-  const handleReflect = async () => {
+  const handleReflect = () => {
+    setReflectConfirmOpen(true);
+  };
+
+  const handleReflectConfirmed = async () => {
     if (!isConfigModified()) {
       await doReflect();
       return;
@@ -887,6 +893,16 @@ export default function CreateShiftPage() {
         onSave={handleSaveAndReflect}
         onSkip={handleSkipAndReflect}
         onCancel={() => setSaveDialogOpen(false)}
+      />
+
+      <ConfirmDialog
+        open={reflectConfirmOpen}
+        title="反映の確認"
+        message="現在の作業内容設定をデータベースに保存します。よろしいですか？"
+        confirmLabel="OK"
+        cancelLabel="キャンセル"
+        onConfirm={handleReflectConfirmed}
+        onClose={() => setReflectConfirmOpen(false)}
       />
     </Box>
   );
