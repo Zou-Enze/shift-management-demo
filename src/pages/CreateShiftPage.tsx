@@ -174,15 +174,6 @@ export default function CreateShiftPage() {
       return;
     }
 
-    const defaultMode = modes.find((m) => m.id === 'WL-01') ?? modes[0];
-    if (defaultMode) {
-      setTaskModeId(defaultMode.id);
-      const result = buildConfigFromWorkload(defaultMode);
-      if (result) {
-        setSelectedLargeIds(result.newSelectedLargeIds);
-        setTaskConfig(result.newTaskConfig);
-      }
-    }
     setHydrated(true);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [categories, existingTaskRows, hydrated, modes, skills]);
@@ -398,6 +389,7 @@ export default function CreateShiftPage() {
 
   const handleSubmit = async () => {
     setLoading(true);
+    await doReflect();
     await generateShiftResult();
     setTimeout(() => {
       setLoading(false);
@@ -840,7 +832,6 @@ export default function CreateShiftPage() {
         color="primary"
         variant="extended"
         onClick={handleSubmit}
-        disabled={!reflected}
         sx={{
           position: 'fixed',
           bottom: 32,
@@ -849,7 +840,7 @@ export default function CreateShiftPage() {
           py: 1.5,
           fontSize: '16px',
           fontWeight: 700,
-          boxShadow: reflected ? '0px 10px 30px rgba(82,75,144,0.25)' : 'none',
+          boxShadow: '0px 10px 30px rgba(82,75,144,0.25)',
         }}
       >
         <BoltIcon sx={{ mr: 1 }} />
@@ -891,7 +882,6 @@ export default function CreateShiftPage() {
         value={newWorkloadName}
         onChange={setNewWorkloadName}
         onSave={handleSaveAndReflect}
-        onSkip={handleSkipAndReflect}
         onCancel={() => setSaveDialogOpen(false)}
       />
 
@@ -1093,11 +1083,10 @@ interface SaveWorkloadDialogProps {
   value: string;
   onChange: (v: string) => void;
   onSave: () => void;
-  onSkip: () => void;
   onCancel: () => void;
 }
 
-function SaveWorkloadDialog({ open, value, onChange, onSave, onSkip, onCancel }: SaveWorkloadDialogProps) {
+function SaveWorkloadDialog({ open, value, onChange, onSave, onCancel }: SaveWorkloadDialogProps) {
   return (
     <Dialog open={open} onClose={onCancel} maxWidth="xs" fullWidth>
       <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -1132,15 +1121,6 @@ function SaveWorkloadDialog({ open, value, onChange, onSave, onSkip, onCancel }:
           sx={{ bgcolor: 'primary.main', color: '#fff', fontWeight: 700 }}
         >
           保存して反映
-        </Button>
-        <Button
-          variant="outlined"
-          fullWidth
-          startIcon={<CheckCircleIcon />}
-          onClick={onSkip}
-          sx={{ color: '#6B6400', borderColor: '#F2E300', bgcolor: '#FFFDE7' }}
-        >
-          保存せずに反映
         </Button>
         <Button fullWidth onClick={onCancel} sx={{ color: 'text.secondary' }}>
           キャンセル

@@ -93,15 +93,16 @@ const BD = '1px solid #E0E0E0';
 interface ContextMenuState {
   mouseX: number;
   mouseY: number;
+  slotType: 'employee' | 'unassigned';
 }
 
 export default function TaskAxisTable({ assignments, categories, shiftRequests, resultDate }: Props) {
   const normDate = resultDate.replace(/-/g, '/');
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
 
-  const handleContextMenuOpen = useCallback((event: React.MouseEvent) => {
+  const handleContextMenuOpen = useCallback((event: React.MouseEvent, slotType: 'employee' | 'unassigned') => {
     event.preventDefault();
-    setContextMenu({ mouseX: event.clientX, mouseY: event.clientY });
+    setContextMenu({ mouseX: event.clientX, mouseY: event.clientY, slotType });
   }, []);
 
   const handleContextMenuClose = useCallback(() => {
@@ -142,9 +143,10 @@ export default function TaskAxisTable({ assignments, categories, shiftRequests, 
   return (
     <>
       <Paper sx={{ border: BD, borderRadius: 1, overflowX: 'auto' }} elevation={0}>
-        <Table sx={{ tableLayout: 'fixed', minWidth: 120 + 24 * 44, borderCollapse: 'collapse' }}>
+        <Table sx={{ tableLayout: 'fixed', minWidth: 80 + 80 + 24 * 44, borderCollapse: 'collapse' }}>
           <colgroup>
-            <col style={{ width: 120 }} />
+            <col style={{ width: 80 }} />
+            <col style={{ width: 80 }} />
             {HOURS.map((h) => (
               <col key={h} style={{ width: 44 }} />
             ))}
@@ -155,7 +157,12 @@ export default function TaskAxisTable({ assignments, categories, shiftRequests, 
               <TableCell
                 sx={{ fontWeight: 600, fontSize: '13px', borderRight: BD, borderBottom: BD, p: '8px 12px' }}
               >
-                小分類
+                カテゴリ小
+              </TableCell>
+              <TableCell
+                sx={{ fontWeight: 600, fontSize: '13px', borderRight: BD, borderBottom: BD, p: '8px 12px' }}
+              >
+                スキル
               </TableCell>
               {HOURS.map((h) => (
                 <TableCell
@@ -183,7 +190,7 @@ export default function TaskAxisTable({ assignments, categories, shiftRequests, 
                   {/* 大分類ヘッダー行 */}
                   <TableRow>
                     <TableCell
-                      colSpan={25}
+                      colSpan={26}
                       sx={{
                         bgcolor: cat?.color ?? '#888888',
                         color: '#fff',
@@ -218,40 +225,41 @@ export default function TaskAxisTable({ assignments, categories, shiftRequests, 
                     return packedRows.map((rowBlocks, ri) => (
                       <TableRow key={`${a.task_id}-r${ri}`}>
                         {ri === 0 && (
-                          <TableCell
-                            rowSpan={rowCount}
-                            sx={{
-                              fontWeight: 600,
-                              fontSize: '13px',
-                              borderLeft: `4px solid ${cat?.color ?? '#888'}`,
-                              borderRight: BD,
-                              borderBottom: BD,
-                              verticalAlign: 'middle',
-                              p: '8px 12px',
-                            }}
-                          >
-                            {a.category_small}
-                            {a.task_name && a.task_name !== a.category_small && (
-                              <Box
-                                component="span"
-                                sx={{
-                                  display: 'block',
-                                  fontSize: '11px',
-                                  color: 'text.secondary',
-                                  fontWeight: 400,
-                                  mt: 0.25,
-                                }}
-                              >
-                                {a.task_name}
-                              </Box>
-                            )}
-                          </TableCell>
+                          <>
+                            <TableCell
+                              rowSpan={rowCount}
+                              sx={{
+                                fontWeight: 600,
+                                fontSize: '13px',
+                                borderLeft: `4px solid ${cat?.color ?? '#888'}`,
+                                borderRight: BD,
+                                borderBottom: BD,
+                                verticalAlign: 'middle',
+                                p: '8px 12px',
+                              }}
+                            >
+                              {a.category_small}
+                            </TableCell>
+                            <TableCell
+                              rowSpan={rowCount}
+                              sx={{
+                                fontSize: '13px',
+                                borderRight: BD,
+                                borderBottom: BD,
+                                verticalAlign: 'middle',
+                                p: '8px 12px',
+                                color: 'text.secondary',
+                              }}
+                            >
+                              {a.task_name && a.task_name !== a.category_small ? a.task_name : ''}
+                            </TableCell>
+                          </>
                         )}
                         {buildSpans(rowBlocks, taskStart, taskEnd).map((span, si) => (
                           <TableCell
                             key={si}
                             colSpan={span.colspan}
-                            onContextMenu={span.type === 'unassigned' ? handleContextMenuOpen : undefined}
+                            onContextMenu={span.type !== 'empty' ? (e) => handleContextMenuOpen(e, span.type as 'employee' | 'unassigned') : undefined}
                             sx={{
                               p: 0,
                               height: 44,
@@ -269,7 +277,7 @@ export default function TaskAxisTable({ assignments, categories, shiftRequests, 
                               color: span.type !== 'empty' ? '#fff' : 'inherit',
                               overflow: 'hidden',
                               whiteSpace: 'nowrap',
-                              cursor: span.type === 'unassigned' ? 'context-menu' : 'default',
+                              cursor: span.type !== 'empty' ? 'context-menu' : 'default',
                             }}
                           >
                             {span.label || null}
@@ -297,7 +305,7 @@ export default function TaskAxisTable({ assignments, categories, shiftRequests, 
       >
         <MenuItem disabled>
           <Typography variant="caption" color="text.secondary">
-            未割当スロット
+            {contextMenu?.slotType === 'employee' ? '割当済みスロット' : '未割当スロット'}
           </Typography>
         </MenuItem>
         <MenuItem onClick={handleContextMenuClose}>TODO: 従業員を割り当てる</MenuItem>

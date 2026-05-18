@@ -76,6 +76,20 @@ export default function ShiftResultPage() {
           shiftRequests={shiftRequests}
           resultDate={result.period_start}
         />
+          <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2 }}>
+            <Button
+              variant="contained"
+              onClick={() => {}}
+              sx={{
+                bgcolor: 'primary.main',
+                color: '#fff',
+                fontWeight: 700,
+                px: 4,
+              }}
+            >
+              再計算
+            </Button>
+          </Box>
         </Box>
       ) : (
         <Box sx={{ mb: 6 }}>
