@@ -86,6 +86,7 @@ export default function CreateShiftPage() {
 
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
   const [newWorkloadName, setNewWorkloadName] = useState('');
+  const [reflected, setReflected] = useState(false);
 
   const skillMap = useMemo(() => {
     const m = new Map<string, string>();
@@ -182,8 +183,56 @@ export default function CreateShiftPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [categories, existingTaskRows, hydrated, modes, skills]);
 
+  const isConfigModified = (): boolean => {
+    if (!taskModeId) return true;
+    const selectedMode = modes?.find((m) => m.id === taskModeId);
+    if (!selectedMode || selectedMode.is_custom) return true;
+    if (!selectedMode.preset_categories) return true;
+
+    const presetLargeIds = selectedMode.preset_categories.map((p) => p.category_large_id).sort();
+    const currentLargeIds = [...selectedLargeIds].sort();
+    if (JSON.stringify(presetLargeIds) !== JSON.stringify(currentLargeIds)) return true;
+
+    for (const large of selectedMode.preset_categories) {
+      const largeId = large.category_large_id;
+      const currentSmalls = taskConfig[largeId] ?? [];
+      const presetSmalls = large.small_categories;
+
+      const currentSmallIds = currentSmalls.map((s) => s.category_small_id).sort();
+      const presetSmallIds = presetSmalls.map((s) => s.category_small_id).sort();
+      if (JSON.stringify(currentSmallIds) !== JSON.stringify(presetSmallIds)) return true;
+
+      for (const presetSmall of presetSmalls) {
+        const currentSmall = currentSmalls.find((s) => s.category_small_id === presetSmall.category_small_id);
+        if (!currentSmall) return true;
+
+        if (currentSmall.skills.length !== presetSmall.tasks.length) return true;
+
+        const sortedCurrent = [...currentSmall.skills].sort((a, b) =>
+          `${a.skill_id}${a.start_time}${a.end_time}`.localeCompare(`${b.skill_id}${b.start_time}${b.end_time}`)
+        );
+        const sortedPreset = [...presetSmall.tasks].sort((a, b) =>
+          `${a.skill_id}${a.start_time}${a.end_time}`.localeCompare(`${b.skill_id}${b.start_time}${b.end_time}`)
+        );
+
+        for (let i = 0; i < sortedCurrent.length; i++) {
+          const c = sortedCurrent[i];
+          const p = sortedPreset[i];
+          if (
+            c.skill_id !== p.skill_id ||
+            c.start_time !== p.start_time ||
+            c.end_time !== p.end_time ||
+            c.required_count !== p.required_count
+          ) return true;
+        }
+      }
+    }
+    return false;
+  };
+
   const handleModeChange = (modeId: string) => {
     setTaskModeId(modeId);
+    setReflected(false);
     if (!modeId) {
       setSelectedLargeIds([]);
       setTaskConfig({});
@@ -207,6 +256,7 @@ export default function CreateShiftPage() {
     setSelectedLargeIds((prev) => [...prev, largeId]);
     setTaskConfig((prev) => ({ ...prev, [largeId]: prev[largeId] ?? [] }));
     setLargeDialogOpen(false);
+    setReflected(false);
   };
 
   const removeLargeCategory = (largeId: string) => {
@@ -216,6 +266,7 @@ export default function CreateShiftPage() {
       delete next[largeId];
       return next;
     });
+    setReflected(false);
   };
 
   const addSmallCategory = (largeId: string, smallId: string, smallName: string) => {
@@ -228,6 +279,7 @@ export default function CreateShiftPage() {
       };
     });
     setSmallDialogForLarge(null);
+    setReflected(false);
   };
 
   const removeSmallCategory = (largeId: string, smallId: string) => {
@@ -235,6 +287,7 @@ export default function CreateShiftPage() {
       ...prev,
       [largeId]: (prev[largeId] ?? []).filter((s) => s.category_small_id !== smallId),
     }));
+    setReflected(false);
   };
 
   const addSkillConfig = (largeId: string, smallId: string, cfg: Omit<SkillConfig, 'id'>) => {
@@ -247,6 +300,7 @@ export default function CreateShiftPage() {
       ),
     }));
     setSkillDialogState(null);
+    setReflected(false);
   };
 
   const updateSkillCount = (largeId: string, smallId: string, skillRowId: string, count: number) => {
@@ -258,6 +312,7 @@ export default function CreateShiftPage() {
           : s
       ),
     }));
+    setReflected(false);
   };
 
   const removeSkill = (largeId: string, smallId: string, skillRowId: string) => {
@@ -267,6 +322,7 @@ export default function CreateShiftPage() {
         s.category_small_id === smallId ? { ...s, skills: s.skills.filter((sk) => sk.id !== skillRowId) } : s
       ),
     }));
+    setReflected(false);
   };
 
   const doReflect = async () => {
@@ -290,9 +346,14 @@ export default function CreateShiftPage() {
     });
     await db.task_rows.clear();
     if (rows.length > 0) await db.task_rows.bulkPut(rows);
+    setReflected(true);
   };
 
-  const handleReflect = () => {
+  const handleReflect = async () => {
+    if (!isConfigModified()) {
+      await doReflect();
+      return;
+    }
     setNewWorkloadName('');
     setSaveDialogOpen(true);
   };
@@ -765,6 +826,7 @@ export default function CreateShiftPage() {
         color="primary"
         variant="extended"
         onClick={handleSubmit}
+        disabled={!reflected}
         sx={{
           position: 'fixed',
           bottom: 32,
@@ -773,7 +835,7 @@ export default function CreateShiftPage() {
           py: 1.5,
           fontSize: '16px',
           fontWeight: 700,
-          boxShadow: '0px 10px 30px rgba(82,75,144,0.25)',
+          boxShadow: reflected ? '0px 10px 30px rgba(82,75,144,0.25)' : 'none',
         }}
       >
         <BoltIcon sx={{ mr: 1 }} />
