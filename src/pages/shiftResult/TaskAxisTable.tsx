@@ -1,5 +1,16 @@
-import { Fragment, useMemo } from 'react';
-import { Box, Paper, Table, TableBody, TableCell, TableHead, TableRow } from '@mui/material';
+import { Fragment, useMemo, useState, useCallback } from 'react';
+import {
+  Box,
+  Menu,
+  MenuItem,
+  Paper,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableRow,
+  Typography,
+} from '@mui/material';
 import type { Assignment, Category, ShiftRequest } from '../../types';
 
 interface Props {
@@ -79,8 +90,23 @@ function buildSpans(blocks: EmpBlock[], taskStart: number, taskEnd: number): Cel
 const HOURS = Array.from({ length: 24 }, (_, i) => i);
 const BD = '1px solid #E0E0E0';
 
+interface ContextMenuState {
+  mouseX: number;
+  mouseY: number;
+}
+
 export default function TaskAxisTable({ assignments, categories, shiftRequests, resultDate }: Props) {
   const normDate = resultDate.replace(/-/g, '/');
+  const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
+
+  const handleContextMenuOpen = useCallback((event: React.MouseEvent) => {
+    event.preventDefault();
+    setContextMenu({ mouseX: event.clientX, mouseY: event.clientY });
+  }, []);
+
+  const handleContextMenuClose = useCallback(() => {
+    setContextMenu(null);
+  }, []);
 
   const reqMap = useMemo(() => {
     const m = new Map<string, { startH: number; endH: number }>();
@@ -105,147 +131,178 @@ export default function TaskAxisTable({ assignments, categories, shiftRequests, 
     return m;
   }, [assignments]);
 
+  // カテゴリの表示順を categories 配列の順序に従って固定する
+  const sortedEntries = useMemo(() => {
+    const catOrder = categories.map((c) => c.id);
+    return Array.from(grouped.entries()).sort(
+      (a, b) => catOrder.indexOf(a[0]) - catOrder.indexOf(b[0])
+    );
+  }, [grouped, categories]);
+
   return (
-    <Paper sx={{ border: BD, borderRadius: 1, overflowX: 'auto' }} elevation={0}>
-      <Table sx={{ tableLayout: 'fixed', minWidth: 120 + 24 * 44, borderCollapse: 'collapse' }}>
-        <colgroup>
-          <col style={{ width: 120 }} />
-          {HOURS.map((h) => (
-            <col key={h} style={{ width: 44 }} />
-          ))}
-        </colgroup>
-
-        <TableHead>
-          <TableRow sx={{ bgcolor: '#F6F3F2' }}>
-            <TableCell
-              sx={{ fontWeight: 600, fontSize: '13px', borderRight: BD, borderBottom: BD, p: '8px 12px' }}
-            >
-              小分類
-            </TableCell>
+    <>
+      <Paper sx={{ border: BD, borderRadius: 1, overflowX: 'auto' }} elevation={0}>
+        <Table sx={{ tableLayout: 'fixed', minWidth: 120 + 24 * 44, borderCollapse: 'collapse' }}>
+          <colgroup>
+            <col style={{ width: 120 }} />
             {HOURS.map((h) => (
-              <TableCell
-                key={h}
-                sx={{
-                  p: '6px 2px',
-                  textAlign: 'center',
-                  fontSize: '11px',
-                  fontWeight: 500,
-                  borderRight: h < 23 ? BD : 'none',
-                  borderBottom: BD,
-                }}
-              >
-                {h}時
-              </TableCell>
+              <col key={h} style={{ width: 44 }} />
             ))}
-          </TableRow>
-        </TableHead>
+          </colgroup>
 
-        <TableBody>
-          {Array.from(grouped.entries()).map(([largeId, list]) => {
-            const cat = categories.find((c) => c.id === largeId);
-            return (
-              <Fragment key={largeId}>
-                {/* 大分類ヘッダー行 */}
-                <TableRow>
-                  <TableCell
-                    colSpan={25}
-                    sx={{
-                      bgcolor: cat?.color ?? '#888888',
-                      color: '#fff',
-                      fontWeight: 700,
-                      fontSize: '14px',
-                      py: 1,
-                      px: 2,
-                      borderBottom: BD,
-                    }}
-                  >
-                    {cat?.name ?? largeId}
-                  </TableCell>
-                </TableRow>
+          <TableHead>
+            <TableRow sx={{ bgcolor: '#F6F3F2' }}>
+              <TableCell
+                sx={{ fontWeight: 600, fontSize: '13px', borderRight: BD, borderBottom: BD, p: '8px 12px' }}
+              >
+                小分類
+              </TableCell>
+              {HOURS.map((h) => (
+                <TableCell
+                  key={h}
+                  sx={{
+                    p: '6px 2px',
+                    textAlign: 'center',
+                    fontSize: '11px',
+                    fontWeight: 500,
+                    borderRight: h < 23 ? BD : 'none',
+                    borderBottom: BD,
+                  }}
+                >
+                  {h}時
+                </TableCell>
+              ))}
+            </TableRow>
+          </TableHead>
 
-                {list.map((a) => {
-                  const taskStart = Math.floor(parseHour(a.start_time));
-                  const taskEnd = Math.ceil(parseHour(a.end_time));
-                  const rowCount = Math.max(1, a.required_count);
+          <TableBody>
+            {sortedEntries.map(([largeId, list]) => {
+              const cat = categories.find((c) => c.id === largeId);
+              return (
+                <Fragment key={largeId}>
+                  {/* 大分類ヘッダー行 */}
+                  <TableRow>
+                    <TableCell
+                      colSpan={25}
+                      sx={{
+                        bgcolor: cat?.color ?? '#888888',
+                        color: '#fff',
+                        fontWeight: 700,
+                        fontSize: '14px',
+                        py: 1,
+                        px: 2,
+                        borderBottom: BD,
+                      }}
+                    >
+                      {cat?.name ?? largeId}
+                    </TableCell>
+                  </TableRow>
 
-                  const blocks: EmpBlock[] = a.assigned_employees.map((e) => {
-                    const req = reqMap.get(e.employee_id);
-                    return {
-                      employeeId: e.employee_id,
-                      employeeName: e.employee_name,
-                      startH: req?.startH ?? taskStart,
-                      endH: req?.endH ?? taskEnd,
-                    };
-                  });
+                  {list.map((a) => {
+                    const taskStart = Math.floor(parseHour(a.start_time));
+                    const taskEnd = Math.ceil(parseHour(a.end_time));
+                    const rowCount = Math.max(1, a.required_count);
 
-                  const packedRows = packRows(blocks, rowCount);
+                    const blocks: EmpBlock[] = a.assigned_employees.map((e) => {
+                      const req = reqMap.get(e.employee_id);
+                      return {
+                        employeeId: e.employee_id,
+                        employeeName: e.employee_name,
+                        startH: req?.startH ?? taskStart,
+                        endH: req?.endH ?? taskEnd,
+                      };
+                    });
 
-                  return packedRows.map((rowBlocks, ri) => (
-                    <TableRow key={`${a.task_id}-r${ri}`}>
-                      {ri === 0 && (
-                        <TableCell
-                          rowSpan={rowCount}
-                          sx={{
-                            fontWeight: 600,
-                            fontSize: '13px',
-                            borderLeft: `4px solid ${cat?.color ?? '#888'}`,
-                            borderRight: BD,
-                            borderBottom: BD,
-                            verticalAlign: 'middle',
-                            p: '8px 12px',
-                          }}
-                        >
-                          {a.category_small}
-                          {a.task_name && a.task_name !== a.category_small && (
-                            <Box
-                              component="span"
-                              sx={{
-                                display: 'block',
-                                fontSize: '11px',
-                                color: 'text.secondary',
-                                fontWeight: 400,
-                                mt: 0.25,
-                              }}
-                            >
-                              {a.task_name}
-                            </Box>
-                          )}
-                        </TableCell>
-                      )}
-                      {buildSpans(rowBlocks, taskStart, taskEnd).map((span, si) => (
-                        <TableCell
-                          key={si}
-                          colSpan={span.colspan}
-                          sx={{
-                            p: 0,
-                            height: 44,
-                            textAlign: 'center',
-                            fontSize: '12px',
-                            fontWeight: 600,
-                            borderRight: BD,
-                            borderBottom: BD,
-                            bgcolor:
-                              span.type === 'employee'
-                                ? (cat?.color ?? '#888')
-                                : span.type === 'unassigned'
-                                ? 'error.main'
-                                : 'transparent',
-                            color: span.type !== 'empty' ? '#fff' : 'inherit',
-                            overflow: 'hidden',
-                            whiteSpace: 'nowrap',
-                          }}
-                        >
-                          {span.label || null}
-                        </TableCell>
-                      ))}
-                    </TableRow>
-                  ));
-                })}
-              </Fragment>
-            );
-          })}
-        </TableBody>
-      </Table>
-    </Paper>
+                    const packedRows = packRows(blocks, rowCount);
+
+                    return packedRows.map((rowBlocks, ri) => (
+                      <TableRow key={`${a.task_id}-r${ri}`}>
+                        {ri === 0 && (
+                          <TableCell
+                            rowSpan={rowCount}
+                            sx={{
+                              fontWeight: 600,
+                              fontSize: '13px',
+                              borderLeft: `4px solid ${cat?.color ?? '#888'}`,
+                              borderRight: BD,
+                              borderBottom: BD,
+                              verticalAlign: 'middle',
+                              p: '8px 12px',
+                            }}
+                          >
+                            {a.category_small}
+                            {a.task_name && a.task_name !== a.category_small && (
+                              <Box
+                                component="span"
+                                sx={{
+                                  display: 'block',
+                                  fontSize: '11px',
+                                  color: 'text.secondary',
+                                  fontWeight: 400,
+                                  mt: 0.25,
+                                }}
+                              >
+                                {a.task_name}
+                              </Box>
+                            )}
+                          </TableCell>
+                        )}
+                        {buildSpans(rowBlocks, taskStart, taskEnd).map((span, si) => (
+                          <TableCell
+                            key={si}
+                            colSpan={span.colspan}
+                            onContextMenu={span.type === 'unassigned' ? handleContextMenuOpen : undefined}
+                            sx={{
+                              p: 0,
+                              height: 44,
+                              textAlign: 'center',
+                              fontSize: '12px',
+                              fontWeight: 600,
+                              borderRight: BD,
+                              borderBottom: BD,
+                              bgcolor:
+                                span.type === 'employee'
+                                  ? (cat?.color ?? '#888')
+                                  : span.type === 'unassigned'
+                                  ? 'error.main'
+                                  : 'transparent',
+                              color: span.type !== 'empty' ? '#fff' : 'inherit',
+                              overflow: 'hidden',
+                              whiteSpace: 'nowrap',
+                              cursor: span.type === 'unassigned' ? 'context-menu' : 'default',
+                            }}
+                          >
+                            {span.label || null}
+                          </TableCell>
+                        ))}
+                      </TableRow>
+                    ));
+                  })}
+                </Fragment>
+              );
+            })}
+          </TableBody>
+        </Table>
+      </Paper>
+
+      <Menu
+        open={contextMenu !== null}
+        onClose={handleContextMenuClose}
+        anchorReference="anchorPosition"
+        anchorPosition={
+          contextMenu !== null
+            ? { top: contextMenu.mouseY, left: contextMenu.mouseX }
+            : undefined
+        }
+      >
+        <MenuItem disabled>
+          <Typography variant="caption" color="text.secondary">
+            未割当スロット
+          </Typography>
+        </MenuItem>
+        <MenuItem onClick={handleContextMenuClose}>TODO: 従業員を割り当てる</MenuItem>
+        <MenuItem onClick={handleContextMenuClose}>TODO: スロットの詳細を確認</MenuItem>
+      </Menu>
+    </>
   );
 }
