@@ -78,9 +78,9 @@ export default function ShiftAdjustEditPage() {
       tab: 0,
       newTask: {
         categorySmall: row.categorySmall,
-        startHour: '',
+        startHour: '0',
         startMinute: '00',
-        endHour: '',
+        endHour: '0',
         endMinute: '00',
         taskContent: '',
         skill: row.skill,
@@ -427,7 +427,7 @@ export default function ShiftAdjustEditPage() {
             <Button
               variant="contained"
               onClick={handleAddNewTask}
-              disabled={!dialog.newTask.startHour || !dialog.newTask.endHour}
+              disabled={!dialog.newTask.categorySmall}
               sx={{ bgcolor: 'primary.main', color: '#fff', fontWeight: 700 }}
             >
               追加
