@@ -155,7 +155,15 @@ export default function TaskAxisTable({ assignments, categories, shiftRequests, 
           <TableHead>
             <TableRow sx={{ bgcolor: '#F6F3F2' }}>
               <TableCell
-                sx={{ fontWeight: 600, fontSize: '13px', borderRight: BD, borderBottom: BD, p: '8px 12px' }}
+                sx={{
+                  fontWeight: 600,
+                  fontSize: '13px',
+                  borderRight: BD,
+                  borderBottom: BD,
+                  p: '8px 12px',
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                }}
               >
                 カテゴリ小
               </TableCell>
@@ -263,24 +271,39 @@ export default function TaskAxisTable({ assignments, categories, shiftRequests, 
                             sx={{
                               p: 0,
                               height: 44,
-                              textAlign: 'center',
-                              fontSize: '12px',
-                              fontWeight: 600,
+                              position: 'relative',
                               borderRight: BD,
                               borderBottom: BD,
-                              bgcolor:
-                                span.type === 'employee'
-                                  ? (cat?.color ?? '#888')
-                                  : span.type === 'unassigned'
-                                  ? 'error.main'
-                                  : 'transparent',
-                              color: span.type !== 'empty' ? '#fff' : 'inherit',
-                              overflow: 'hidden',
-                              whiteSpace: 'nowrap',
+                              bgcolor: '#FFFFFF',
                               cursor: span.type !== 'empty' ? 'context-menu' : 'default',
                             }}
                           >
-                            {span.label || null}
+                            {span.type !== 'empty' && (
+                              <Box
+                                sx={{
+                                  position: 'absolute',
+                                  top: 6,
+                                  bottom: 6,
+                                  left: 3,
+                                  right: 3,
+                                  borderRadius: '4px',
+                                  bgcolor: span.type === 'employee' ? (cat?.color ?? '#888') : 'error.main',
+                                  color: '#fff',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  fontSize: '12px',
+                                  fontWeight: 600,
+                                  overflow: 'hidden',
+                                  whiteSpace: 'nowrap',
+                                  px: 0.5,
+                                  opacity: 0.9,
+                                  '&:hover': { opacity: 1 },
+                                }}
+                              >
+                                {span.label}
+                              </Box>
+                            )}
                           </TableCell>
                         ))}
                       </TableRow>
