@@ -426,34 +426,34 @@ export default function AdjustTable({ rows, onRowChange }: Props) {
                                 })}
                               </Box>
                             ))}
-
-                            {/* 変更ボタン列 */}
-                            {showChangeCol && (
-                              <Box
-                                sx={{
-                                  gridColumn: 27,
-                                  gridRow: `${startRow} / ${startRow + rowCount}`,
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'center',
-                                  borderLeft: BD,
-                                  borderBottom: BD,
-                                  boxSizing: 'border-box',
-                                  p: 1,
-                                }}
-                              >
-                                <Button
-                                  size="small"
-                                  variant="outlined"
-                                  onClick={() => onRowChange!(task)}
-                                  sx={{ fontSize: '12px', minWidth: 56 }}
-                                >
-                                  変更
-                                </Button>
-                              </Box>
-                            )}
                           </Fragment>
                         ))}
+
+                        {/* 変更ボタン列（スキルグループ全体に1つ） */}
+                        {showChangeCol && (
+                          <Box
+                            sx={{
+                              gridColumn: 27,
+                              gridRow: `${skillGroup.startRow} / ${skillGroup.endRow}`,
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              borderLeft: BD,
+                              borderBottom: BD,
+                              boxSizing: 'border-box',
+                              p: 1,
+                            }}
+                          >
+                            <Button
+                              size="small"
+                              variant="outlined"
+                              onClick={() => onRowChange!(skillGroup.tasks[0].task)}
+                              sx={{ fontSize: '12px', minWidth: 56 }}
+                            >
+                              変更
+                            </Button>
+                          </Box>
+                        )}
                       </Fragment>
                     ))}
                   </Fragment>
