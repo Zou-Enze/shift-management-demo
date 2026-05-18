@@ -1,16 +1,5 @@
 import { Fragment, useMemo, useState, useCallback } from 'react';
-import {
-  Box,
-  Menu,
-  MenuItem,
-  Paper,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableRow,
-  Typography,
-} from '@mui/material';
+import { Box, Menu, MenuItem, Paper, Typography } from '@mui/material';
 import type { Assignment, Category, ShiftRequest } from '../../types';
 
 interface Props {
@@ -32,13 +21,13 @@ interface EmpBlock {
   endH: number;
 }
 
-interface CellSpan {
-  type: 'employee' | 'unassigned' | 'empty';
-  colspan: number;
+interface SpanBar {
+  type: 'employee' | 'unassigned';
+  startH: number;
+  endH: number;
   label: string;
 }
 
-/** 貪欲法で従業員ブロックを required_count 行に詰める（同行内で時間帯が重複しないよう） */
 function packRows(blocks: EmpBlock[], rowCount: number): EmpBlock[][] {
   const rows: EmpBlock[][] = Array.from({ length: rowCount }, () => []);
   [...blocks].sort((a, b) => a.startH - b.startH).forEach((block) => {
@@ -53,8 +42,8 @@ function packRows(blocks: EmpBlock[], rowCount: number): EmpBlock[][] {
   return rows;
 }
 
-/** 1行分のセルスパン列を生成（連続する同種セルは colSpan でまとめる） */
-function buildSpans(blocks: EmpBlock[], taskStart: number, taskEnd: number): CellSpan[] {
+/** 1行分の表示バーを計算する（employee / unassigned のみ、empty は除外） */
+function buildBars(blocks: EmpBlock[], taskStart: number, taskEnd: number): SpanBar[] {
   type Slot = { type: 'employee' | 'unassigned' | 'empty'; id: string; name: string };
   const slots: Slot[] = Array.from({ length: 24 }, (_, h) => ({
     type: h >= taskStart && h < taskEnd ? 'unassigned' : 'empty',
@@ -70,25 +59,29 @@ function buildSpans(blocks: EmpBlock[], taskStart: number, taskEnd: number): Cel
     }
   }
 
-  const spans: CellSpan[] = [];
+  const bars: SpanBar[] = [];
   let i = 0;
   while (i < 24) {
     const cur = slots[i];
+    if (cur.type === 'empty') { i++; continue; }
     let j = i + 1;
     if (cur.type === 'employee') {
       while (j < 24 && slots[j].type === 'employee' && slots[j].id === cur.id) j++;
-      spans.push({ type: 'employee', colspan: j - i, label: cur.name });
+      bars.push({ type: 'employee', startH: i, endH: j, label: cur.name });
     } else {
-      while (j < 24 && slots[j].type === cur.type) j++;
-      spans.push({ type: cur.type, colspan: j - i, label: cur.type === 'unassigned' ? '未割当' : '' });
+      while (j < 24 && slots[j].type === 'unassigned') j++;
+      bars.push({ type: 'unassigned', startH: i, endH: j, label: '未割当' });
     }
     i = j;
   }
-  return spans;
+  return bars;
 }
 
-const HOURS = Array.from({ length: 24 }, (_, i) => i);
+const LABEL1_WIDTH = 100;
+const LABEL2_WIDTH = 80;
 const BD = '1px solid #E0E0E0';
+const HOURS = Array.from({ length: 24 }, (_, i) => i);
+const RANGE_TOTAL = 24;
 
 interface ContextMenuState {
   mouseX: number;
@@ -132,7 +125,6 @@ export default function TaskAxisTable({ assignments, categories, shiftRequests, 
     return m;
   }, [assignments]);
 
-  // カテゴリの表示順を categories 配列の順序に従って固定する
   const sortedEntries = useMemo(() => {
     const catOrder = categories.map((c) => c.id);
     return Array.from(grouped.entries()).sort(
@@ -140,180 +132,245 @@ export default function TaskAxisTable({ assignments, categories, shiftRequests, 
     );
   }, [grouped, categories]);
 
+  const layoutData = useMemo(() => {
+    let currentRow = 2;
+    return sortedEntries.map(([largeId, list]) => {
+      const cat = categories.find((c) => c.id === largeId);
+      const headerRow = currentRow++;
+
+      const assignmentLayouts = list.map((a) => {
+        const taskStart = Math.floor(parseHour(a.start_time));
+        const taskEnd = Math.ceil(parseHour(a.end_time));
+        const rowCount = Math.max(1, a.required_count);
+        const startRow = currentRow;
+        currentRow += rowCount;
+
+        const blocks: EmpBlock[] = a.assigned_employees.map((e) => {
+          const req = reqMap.get(e.employee_id);
+          return {
+            employeeId: e.employee_id,
+            employeeName: e.employee_name,
+            startH: req?.startH ?? taskStart,
+            endH: req?.endH ?? taskEnd,
+          };
+        });
+
+        const packedRows = packRows(blocks, rowCount);
+        return { a, taskStart, taskEnd, rowCount, startRow, packedRows };
+      });
+
+      return { largeId, cat, headerRow, assignmentLayouts };
+    });
+  }, [sortedEntries, categories, reqMap]);
+
+  const gridTemplateColumns = `minmax(${LABEL1_WIDTH}px, ${LABEL1_WIDTH}px) minmax(${LABEL2_WIDTH}px, ${LABEL2_WIDTH}px) repeat(24, minmax(28px, 1fr))`;
+
   return (
     <>
-      <Paper sx={{ border: BD, borderRadius: 1, overflowX: 'auto' }} elevation={0}>
-        <Table sx={{ tableLayout: 'fixed', minWidth: 80 + 80 + 24 * 44, borderCollapse: 'collapse' }}>
-          <colgroup>
-            <col style={{ width: 80 }} />
-            <col style={{ width: 80 }} />
-            {HOURS.map((h) => (
-              <col key={h} style={{ width: 44 }} />
-            ))}
-          </colgroup>
-
-          <TableHead>
-            <TableRow sx={{ bgcolor: '#F6F3F2' }}>
-              <TableCell
+      <Paper sx={{ border: BD, borderRadius: 1, overflow: 'hidden' }} elevation={0}>
+        <Box sx={{ overflowX: 'auto' }}>
+          <Box
+            sx={{
+              display: 'grid',
+              gridTemplateColumns,
+              minWidth: LABEL1_WIDTH + LABEL2_WIDTH + 24 * 36,
+            }}
+          >
+            {/* ヘッダー行 */}
+            <Box
+              sx={{
+                gridColumn: 1,
+                gridRow: 1,
+                p: '8px 12px',
+                fontWeight: 600,
+                fontSize: '13px',
+                bgcolor: '#F6F3F2',
+                borderBottom: BD,
+                borderRight: BD,
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                display: 'flex',
+                alignItems: 'center',
+                boxSizing: 'border-box',
+              }}
+            >
+              カテゴリ小
+            </Box>
+            <Box
+              sx={{
+                gridColumn: 2,
+                gridRow: 1,
+                p: '8px 12px',
+                fontWeight: 600,
+                fontSize: '13px',
+                bgcolor: '#F6F3F2',
+                borderBottom: BD,
+                borderRight: BD,
+                display: 'flex',
+                alignItems: 'center',
+                boxSizing: 'border-box',
+              }}
+            >
+              スキル
+            </Box>
+            {HOURS.map((h, i) => (
+              <Box
+                key={h}
                 sx={{
-                  fontWeight: 600,
-                  fontSize: '13px',
-                  borderRight: BD,
+                  gridColumn: i + 3,
+                  gridRow: 1,
+                  py: 2,
+                  textAlign: 'center',
+                  fontSize: '11px',
+                  fontWeight: 500,
+                  bgcolor: '#F6F3F2',
                   borderBottom: BD,
-                  p: '8px 12px',
-                  whiteSpace: 'nowrap',
-                  overflow: 'hidden',
+                  borderRight: i < HOURS.length - 1 ? BD : 'none',
+                  boxSizing: 'border-box',
+                  minWidth: 0,
                 }}
               >
-                カテゴリ小
-              </TableCell>
-              <TableCell
-                sx={{ fontWeight: 600, fontSize: '13px', borderRight: BD, borderBottom: BD, p: '8px 12px' }}
-              >
-                スキル
-              </TableCell>
-              {HOURS.map((h) => (
-                <TableCell
-                  key={h}
+                {h}時
+              </Box>
+            ))}
+
+            {/* データ行 */}
+            {layoutData.map(({ largeId, cat, headerRow, assignmentLayouts }) => (
+              <Fragment key={largeId}>
+                {/* 大分類ヘッダー行 */}
+                <Box
                   sx={{
-                    p: '6px 2px',
-                    textAlign: 'center',
-                    fontSize: '11px',
-                    fontWeight: 500,
-                    borderRight: h < 23 ? BD : 'none',
+                    gridColumn: '1 / -1',
+                    gridRow: headerRow,
+                    bgcolor: cat?.color ?? '#888888',
+                    color: '#fff',
+                    fontWeight: 700,
+                    fontSize: '14px',
+                    py: 1,
+                    px: 2,
                     borderBottom: BD,
+                    boxSizing: 'border-box',
                   }}
                 >
-                  {h}時
-                </TableCell>
-              ))}
-            </TableRow>
-          </TableHead>
+                  {cat?.name ?? largeId}
+                </Box>
 
-          <TableBody>
-            {sortedEntries.map(([largeId, list]) => {
-              const cat = categories.find((c) => c.id === largeId);
-              return (
-                <Fragment key={largeId}>
-                  {/* 大分類ヘッダー行 */}
-                  <TableRow>
-                    <TableCell
-                      colSpan={26}
+                {assignmentLayouts.map(({ a, taskStart, taskEnd, rowCount, startRow, packedRows }) => (
+                  <Fragment key={a.task_id}>
+                    {/* カテゴリ小ラベル（rowSpan相当） */}
+                    <Box
                       sx={{
-                        bgcolor: cat?.color ?? '#888888',
-                        color: '#fff',
-                        fontWeight: 700,
-                        fontSize: '14px',
-                        py: 1,
-                        px: 2,
+                        gridColumn: 1,
+                        gridRow: `${startRow} / ${startRow + rowCount}`,
+                        p: '8px 12px',
+                        fontWeight: 600,
+                        fontSize: '13px',
+                        borderLeft: `4px solid ${cat?.color ?? '#888'}`,
+                        borderRight: BD,
                         borderBottom: BD,
+                        display: 'flex',
+                        alignItems: 'center',
+                        boxSizing: 'border-box',
                       }}
                     >
-                      {cat?.name ?? largeId}
-                    </TableCell>
-                  </TableRow>
+                      {a.category_small}
+                    </Box>
+                    {/* スキルラベル（rowSpan相当） */}
+                    <Box
+                      sx={{
+                        gridColumn: 2,
+                        gridRow: `${startRow} / ${startRow + rowCount}`,
+                        p: '8px 12px',
+                        fontSize: '13px',
+                        color: 'text.secondary',
+                        borderRight: BD,
+                        borderBottom: BD,
+                        display: 'flex',
+                        alignItems: 'center',
+                        boxSizing: 'border-box',
+                      }}
+                    >
+                      {a.task_name && a.task_name !== a.category_small ? a.task_name : ''}
+                    </Box>
 
-                  {list.map((a) => {
-                    const taskStart = Math.floor(parseHour(a.start_time));
-                    const taskEnd = Math.ceil(parseHour(a.end_time));
-                    const rowCount = Math.max(1, a.required_count);
-
-                    const blocks: EmpBlock[] = a.assigned_employees.map((e) => {
-                      const req = reqMap.get(e.employee_id);
-                      return {
-                        employeeId: e.employee_id,
-                        employeeName: e.employee_name,
-                        startH: req?.startH ?? taskStart,
-                        endH: req?.endH ?? taskEnd,
-                      };
-                    });
-
-                    const packedRows = packRows(blocks, rowCount);
-
-                    return packedRows.map((rowBlocks, ri) => (
-                      <TableRow key={`${a.task_id}-r${ri}`}>
-                        {ri === 0 && (
-                          <>
-                            <TableCell
-                              rowSpan={rowCount}
+                    {/* タイムライン行 */}
+                    {packedRows.map((rowBlocks, ri) => (
+                      <Box
+                        key={ri}
+                        sx={{
+                          gridColumn: '3 / -1',
+                          gridRow: startRow + ri,
+                          position: 'relative',
+                          minHeight: 56,
+                          bgcolor: '#FFFFFF',
+                          borderBottom: BD,
+                          boxSizing: 'border-box',
+                          minWidth: 0,
+                        }}
+                      >
+                        {/* 縦グリッド線 */}
+                        <Box
+                          sx={{
+                            display: 'grid',
+                            gridTemplateColumns: 'repeat(24, 1fr)',
+                            position: 'absolute',
+                            inset: 0,
+                            pointerEvents: 'none',
+                          }}
+                        >
+                          {HOURS.map((_, i) => (
+                            <Box
+                              key={i}
                               sx={{
+                                borderRight: i < HOURS.length - 1 ? BD : 'none',
+                                boxSizing: 'border-box',
+                              }}
+                            />
+                          ))}
+                        </Box>
+
+                        {/* 割当バー */}
+                        {buildBars(rowBlocks, taskStart, taskEnd).map((bar, bi) => {
+                          const left = `${(bar.startH / RANGE_TOTAL) * 100}%`;
+                          const width = `${((bar.endH - bar.startH) / RANGE_TOTAL) * 100}%`;
+                          return (
+                            <Box
+                              key={bi}
+                              onContextMenu={(e) => handleContextMenuOpen(e, bar.type)}
+                              sx={{
+                                position: 'absolute',
+                                top: 8,
+                                bottom: 8,
+                                left,
+                                width,
+                                bgcolor: bar.type === 'employee' ? (cat?.color ?? '#888') : 'error.main',
+                                color: '#fff',
+                                borderRadius: '4px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                fontSize: '12px',
                                 fontWeight: 600,
-                                fontSize: '13px',
-                                borderLeft: `4px solid ${cat?.color ?? '#888'}`,
-                                borderRight: BD,
-                                borderBottom: BD,
-                                verticalAlign: 'middle',
-                                p: '8px 12px',
+                                overflow: 'hidden',
+                                whiteSpace: 'nowrap',
+                                px: 0.5,
+                                cursor: 'context-menu',
+                                opacity: 0.9,
+                                '&:hover': { opacity: 1 },
                               }}
                             >
-                              {a.category_small}
-                            </TableCell>
-                            <TableCell
-                              rowSpan={rowCount}
-                              sx={{
-                                fontSize: '13px',
-                                borderRight: BD,
-                                borderBottom: BD,
-                                verticalAlign: 'middle',
-                                p: '8px 12px',
-                                color: 'text.secondary',
-                              }}
-                            >
-                              {a.task_name && a.task_name !== a.category_small ? a.task_name : ''}
-                            </TableCell>
-                          </>
-                        )}
-                        {buildSpans(rowBlocks, taskStart, taskEnd).map((span, si) => (
-                          <TableCell
-                            key={si}
-                            colSpan={span.colspan}
-                            onContextMenu={span.type !== 'empty' ? (e) => handleContextMenuOpen(e, span.type as 'employee' | 'unassigned') : undefined}
-                            sx={{
-                              p: 0,
-                              height: 44,
-                              position: 'relative',
-                              borderRight: BD,
-                              borderBottom: BD,
-                              bgcolor: '#FFFFFF',
-                              cursor: span.type !== 'empty' ? 'context-menu' : 'default',
-                            }}
-                          >
-                            {span.type !== 'empty' && (
-                              <Box
-                                sx={{
-                                  position: 'absolute',
-                                  top: 6,
-                                  bottom: 6,
-                                  left: 3,
-                                  right: 3,
-                                  borderRadius: '4px',
-                                  bgcolor: span.type === 'employee' ? (cat?.color ?? '#888') : 'error.main',
-                                  color: '#fff',
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'center',
-                                  fontSize: '12px',
-                                  fontWeight: 600,
-                                  overflow: 'hidden',
-                                  whiteSpace: 'nowrap',
-                                  px: 0.5,
-                                  opacity: 0.9,
-                                  '&:hover': { opacity: 1 },
-                                }}
-                              >
-                                {span.label}
-                              </Box>
-                            )}
-                          </TableCell>
-                        ))}
-                      </TableRow>
-                    ));
-                  })}
-                </Fragment>
-              );
-            })}
-          </TableBody>
-        </Table>
+                              {bar.label}
+                            </Box>
+                          );
+                        })}
+                      </Box>
+                    ))}
+                  </Fragment>
+                ))}
+              </Fragment>
+            ))}
+          </Box>
+        </Box>
       </Paper>
 
       <Menu
