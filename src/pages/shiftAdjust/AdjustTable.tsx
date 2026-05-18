@@ -1,6 +1,7 @@
 import { Fragment, useMemo } from 'react';
 import { Box, Button, Paper } from '@mui/material';
 import type { AdjustRow } from './adjustTypes';
+import { getCategorySmallNameColor } from '../../constants/categoryColors';
 
 interface EmpBlock {
   employeeId: string;
@@ -314,7 +315,7 @@ export default function AdjustTable({ rows, onRowChange }: Props) {
                         p: '8px 12px',
                         fontWeight: 600,
                         fontSize: '13px',
-                        borderLeft: `4px solid ${color}`,
+                        borderLeft: `4px solid ${getCategorySmallNameColor(catGroup.categorySmall)}`,
                         borderRight: BD,
                         borderBottom: BD,
                         display: 'flex',
