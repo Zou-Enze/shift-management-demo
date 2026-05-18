@@ -17,7 +17,7 @@ import { db } from '../db/database';
 import SummaryCards from './shiftResult/SummaryCards';
 import TaskAxisTable from './shiftResult/TaskAxisTable';
 import GanttChart from './shiftResult/GanttChart';
-import type { Category, ShiftResult } from '../types';
+import type { Category, ShiftRequest, ShiftResult } from '../types';
 
 export default function ShiftResultPage() {
   const navigate = useNavigate();
@@ -25,8 +25,9 @@ export default function ShiftResultPage() {
 
   const results = useLiveQuery(() => db.shift_results.toArray(), []) as ShiftResult[] | undefined;
   const categories = useLiveQuery(() => db.categories.toArray(), []) as Category[] | undefined;
+  const shiftRequests = useLiveQuery(() => db.shift_requests.toArray(), []) as ShiftRequest[] | undefined;
 
-  if (!results || !categories) {
+  if (!results || !categories || !shiftRequests) {
     return (
       <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', py: 8 }}>
         <CircularProgress />
@@ -69,7 +70,12 @@ export default function ShiftResultPage() {
 
       {tab === 'task' ? (
         <Box sx={{ mb: 6 }}>
-          <TaskAxisTable assignments={result.assignments} categories={categories} />
+          <TaskAxisTable
+          assignments={result.assignments}
+          categories={categories}
+          shiftRequests={shiftRequests}
+          resultDate={result.period_start}
+        />
         </Box>
       ) : (
         <Box sx={{ mb: 6 }}>

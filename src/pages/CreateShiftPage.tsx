@@ -40,7 +40,7 @@ import BookmarkAddIcon from '@mui/icons-material/BookmarkAdd';
 import { db } from '../db/database';
 import { getCategorySmallColor } from '../constants/categoryColors';
 import { isoDateToSlash, slashDateToIso, todayIsoDate } from '../utils/taskDateTime';
-import type { Category, Skill, TaskRow, Mode } from '../types';
+import type { Assignment, AssignedEmployee, Category, Skill, TaskRow, Mode } from '../types';
 
 interface SkillConfig {
   id: string;
@@ -327,12 +327,104 @@ export default function CreateShiftPage() {
     await doReflect();
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     setLoading(true);
+    await generateShiftResult();
     setTimeout(() => {
       setLoading(false);
       navigate('/shift/result');
-    }, 1500);
+    }, 1200);
+  };
+
+  const generateShiftResult = async () => {
+    const parseH = (t: string) => {
+      const [h, m] = t.split(':').map(Number);
+      return h + (isFinite(m) ? m / 60 : 0);
+    };
+
+    const [taskRows, allRequests, allEmployees, allCategories, allSkills] = await Promise.all([
+      db.task_rows.toArray(),
+      db.shift_requests.toArray(),
+      db.employees.toArray(),
+      db.categories.toArray(),
+      db.skills.toArray(),
+    ]);
+
+    const categoryMap = new Map(allCategories.map((c) => [c.id, c]));
+    const skillMap = new Map(allSkills.map((s) => [s.id, s]));
+    const employeeMap = new Map(allEmployees.map((e) => [e.id, e]));
+
+    // 従業員ごとの予約済み時間帯（重複配置を防ぐ）
+    const bookings = new Map<string, Array<{ start: number; end: number }>>();
+
+    const assignments: Assignment[] = taskRows.map((row) => {
+      const taskStart = parseH(row.start_time);
+      const taskEnd = parseH(row.end_time);
+      const taskDate = (row.task_date ?? '').replace(/-/g, '/');
+
+      // 日付・時間帯が重複し、スキルが一致するシフト希望を抽出
+      const eligible = allRequests.filter((req) => {
+        if (req.date.replace(/-/g, '/') !== taskDate) return false;
+        const reqStart = parseH(req.preferred_start);
+        const reqEnd = parseH(req.preferred_end);
+        if (reqStart >= taskEnd || reqEnd <= taskStart) return false;
+        const emp = employeeMap.get(req.employee_id);
+        // スキルが設定されている場合のみスキル照合
+        if (emp && emp.skills.length > 0 && !emp.skills.includes(row.skill_id)) return false;
+        return true;
+      });
+
+      // 必要人数まで割当（同一従業員の時間帯重複は除外）
+      const assignedEmployees: AssignedEmployee[] = [];
+      for (const req of eligible) {
+        if (assignedEmployees.length >= row.required_count) break;
+        const reqStart = parseH(req.preferred_start);
+        const reqEnd = parseH(req.preferred_end);
+        const empBookings = bookings.get(req.employee_id) ?? [];
+        const hasConflict = empBookings.some((b) => reqStart < b.end && reqEnd > b.start);
+        if (hasConflict) continue;
+        assignedEmployees.push({ employee_id: req.employee_id, employee_name: req.employee_name });
+        empBookings.push({ start: reqStart, end: reqEnd });
+        bookings.set(req.employee_id, empBookings);
+      }
+
+      const cat = categoryMap.get(row.category_large_id);
+      const subCat = cat?.sub_categories.find((sc) => sc.id === row.category_small_id);
+      const skill = skillMap.get(row.skill_id);
+      const shortage = Math.max(0, row.required_count - assignedEmployees.length);
+
+      return {
+        task_id: row.id,
+        category_large_id: row.category_large_id,
+        category_large: cat?.name ?? row.category_large_id,
+        category_small_id: row.category_small_id,
+        category_small: subCat?.name ?? row.category_small_id,
+        start_time: row.start_time,
+        end_time: row.end_time,
+        task_name: row.task_name,
+        skill_id: row.skill_id,
+        skill: skill?.name ?? row.skill_id,
+        required_count: row.required_count,
+        assigned_count: assignedEmployees.length,
+        shortage,
+        assigned_employees: assignedEmployees,
+      };
+    });
+
+    const totalAssigned = assignments.reduce((s, a) => s + a.assigned_count, 0);
+    const totalHours = assignments.reduce((s, a) => s + (parseH(a.end_time) - parseH(a.start_time)) * a.required_count, 0);
+    const shortageHours = assignments.reduce((s, a) => s + (parseH(a.end_time) - parseH(a.start_time)) * a.shortage, 0);
+    const targetDate = taskRows[0]?.task_date ?? new Date().toISOString().slice(0, 10).replace(/-/g, '/');
+
+    await db.shift_results.clear();
+    await db.shift_results.add({
+      id: `RESULT-${Date.now()}`,
+      period_start: targetDate,
+      period_end: targetDate,
+      mode: taskModeId,
+      summary: { total_assigned: totalAssigned, total_hours: totalHours, shortage_hours: shortageHours },
+      assignments,
+    });
   };
 
   return (
