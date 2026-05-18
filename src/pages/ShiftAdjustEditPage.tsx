@@ -34,8 +34,10 @@ interface LocationState {
 
 interface NewTaskForm {
   categorySmall: string;
-  startTime: string;
-  endTime: string;
+  startHour: string;
+  startMinute: string;
+  endHour: string;
+  endMinute: string;
   taskContent: string;
   skill: string;
   requiredCount: number;
@@ -49,12 +51,8 @@ interface DialogState {
   absentIds: Set<string>;
 }
 
-const TIME_OPTIONS: string[] = [];
-for (let h = 0; h < 24; h++) {
-  for (const m of [0, 15, 30, 45]) {
-    TIME_OPTIONS.push(`${h}:${String(m).padStart(2, '0')}`);
-  }
-}
+const HOUR_OPTIONS = Array.from({ length: 24 }, (_, i) => String(i));
+const MINUTE_OPTIONS = ['00', '15', '30', '45'];
 
 export default function ShiftAdjustEditPage() {
   const navigate = useNavigate();
@@ -80,8 +78,10 @@ export default function ShiftAdjustEditPage() {
       tab: 0,
       newTask: {
         categorySmall: row.categorySmall,
-        startTime: '',
-        endTime: '',
+        startHour: '',
+        startMinute: '00',
+        endHour: '',
+        endMinute: '00',
         taskContent: '',
         skill: row.skill,
         requiredCount: 1,
@@ -101,15 +101,17 @@ export default function ShiftAdjustEditPage() {
   const handleAddNewTask = () => {
     if (!dialog) return;
     const { newTask, row } = dialog;
-    if (!newTask.categorySmall || !newTask.startTime || !newTask.endTime) return;
+    if (!newTask.categorySmall || !newTask.startHour || !newTask.endHour) return;
 
+    const startTime = `${newTask.startHour}:${newTask.startMinute}`;
+    const endTime = `${newTask.endHour}:${newTask.endMinute}`;
     const datePrefix = date ? `${date} ` : '';
     const newRow: AdjustRow = {
       id: `adj-new-${Date.now()}`,
       categoryLarge: row.categoryLarge,
       categorySmall: newTask.categorySmall,
-      startDateTime: `${datePrefix}${newTask.startTime}`,
-      endDateTime: `${datePrefix}${newTask.endTime}`,
+      startDateTime: `${datePrefix}${startTime}`,
+      endDateTime: `${datePrefix}${endTime}`,
       taskContent: newTask.taskContent,
       skill: newTask.skill,
       requiredCount: newTask.requiredCount,
@@ -244,36 +246,69 @@ export default function ShiftAdjustEditPage() {
                   ))}
                 </Select>
               </FormControl>
-              <Stack direction="row" spacing={2}>
-                <FormControl size="small" fullWidth>
-                  <InputLabel>開始時間</InputLabel>
+              <Stack direction="row" spacing={1} alignItems="center">
+                <FormControl size="small" sx={{ minWidth: 80 }}>
+                  <InputLabel>開始時</InputLabel>
                   <Select
-                    label="開始時間"
-                    value={dialog.newTask.startTime}
+                    label="開始時"
+                    value={dialog.newTask.startHour}
                     onChange={(e) =>
                       setDialog((d) =>
-                        d ? { ...d, newTask: { ...d.newTask, startTime: e.target.value } } : d
+                        d ? { ...d, newTask: { ...d.newTask, startHour: e.target.value } } : d
                       )
                     }
                   >
-                    {TIME_OPTIONS.map((t) => (
-                      <MenuItem key={t} value={t}>{t}</MenuItem>
+                    {HOUR_OPTIONS.map((h) => (
+                      <MenuItem key={h} value={h}>{h}時</MenuItem>
                     ))}
                   </Select>
                 </FormControl>
-                <FormControl size="small" fullWidth>
-                  <InputLabel>終了時間</InputLabel>
+                <FormControl size="small" sx={{ minWidth: 80 }}>
+                  <InputLabel>開始分</InputLabel>
                   <Select
-                    label="終了時間"
-                    value={dialog.newTask.endTime}
+                    label="開始分"
+                    value={dialog.newTask.startMinute}
                     onChange={(e) =>
                       setDialog((d) =>
-                        d ? { ...d, newTask: { ...d.newTask, endTime: e.target.value } } : d
+                        d ? { ...d, newTask: { ...d.newTask, startMinute: e.target.value } } : d
                       )
                     }
                   >
-                    {TIME_OPTIONS.map((t) => (
-                      <MenuItem key={t} value={t}>{t}</MenuItem>
+                    {MINUTE_OPTIONS.map((m) => (
+                      <MenuItem key={m} value={m}>{m}分</MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+                <Typography sx={{ mx: 0.5, color: 'text.secondary' }}>〜</Typography>
+                <FormControl size="small" sx={{ minWidth: 80 }}>
+                  <InputLabel>終了時</InputLabel>
+                  <Select
+                    label="終了時"
+                    value={dialog.newTask.endHour}
+                    onChange={(e) =>
+                      setDialog((d) =>
+                        d ? { ...d, newTask: { ...d.newTask, endHour: e.target.value } } : d
+                      )
+                    }
+                  >
+                    {HOUR_OPTIONS.map((h) => (
+                      <MenuItem key={h} value={h}>{h}時</MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+                <FormControl size="small" sx={{ minWidth: 80 }}>
+                  <InputLabel>終了分</InputLabel>
+                  <Select
+                    label="終了分"
+                    value={dialog.newTask.endMinute}
+                    onChange={(e) =>
+                      setDialog((d) =>
+                        d ? { ...d, newTask: { ...d.newTask, endMinute: e.target.value } } : d
+                      )
+                    }
+                  >
+                    {MINUTE_OPTIONS.map((m) => (
+                      <MenuItem key={m} value={m}>{m}分</MenuItem>
                     ))}
                   </Select>
                 </FormControl>
@@ -392,7 +427,7 @@ export default function ShiftAdjustEditPage() {
             <Button
               variant="contained"
               onClick={handleAddNewTask}
-              disabled={!dialog.newTask.startTime || !dialog.newTask.endTime}
+              disabled={!dialog.newTask.startHour || !dialog.newTask.endHour}
               sx={{ bgcolor: 'primary.main', color: '#fff', fontWeight: 700 }}
             >
               追加
