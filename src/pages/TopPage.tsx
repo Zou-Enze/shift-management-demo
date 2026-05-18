@@ -87,7 +87,11 @@ export default function TopPage() {
             />
           </Grid>
           <Grid item xs={12} md={6}>
-            <ActionCard icon={<EditIcon sx={{ fontSize: 40 }} />} label="既存シフト調整" disabled />
+            <ActionCard
+              icon={<EditIcon sx={{ fontSize: 40 }} />}
+              label="既存シフト調整"
+              onClick={() => navigate('/shift/adjust')}
+            />
           </Grid>
           <Grid item xs={12} md={6}>
             <ActionCard

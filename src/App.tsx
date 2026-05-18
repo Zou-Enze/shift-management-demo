@@ -8,6 +8,8 @@ import CreateShiftPage from './pages/CreateShiftPage';
 import ShiftRequestPage from './pages/ShiftRequestPage';
 import ShiftResultPage from './pages/ShiftResultPage';
 import MasterPage from './pages/MasterPage';
+import ShiftAdjustPage from './pages/ShiftAdjustPage';
+import ShiftAdjustEditPage from './pages/ShiftAdjustEditPage';
 
 export default function App() {
   const [ready, setReady] = useState(false);
@@ -45,6 +47,8 @@ export default function App() {
           <Route path="shift/create" element={<CreateShiftPage />} />
           <Route path="shift/request" element={<ShiftRequestPage />} />
           <Route path="shift/result" element={<ShiftResultPage />} />
+          <Route path="shift/adjust" element={<ShiftAdjustPage />} />
+          <Route path="shift/adjust/edit" element={<ShiftAdjustEditPage />} />
           <Route path="master" element={<MasterPage />} />
           <Route path="*" element={<Navigate to="/home" replace />} />
         </Route>
