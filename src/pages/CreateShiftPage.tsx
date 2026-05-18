@@ -128,7 +128,10 @@ export default function CreateShiftPage() {
     if (hydrated) return;
     if (!categories || !modes || !skills) return;
 
-    if (existingTaskRows && existingTaskRows.length > 0) {
+    const todaySlash = isoDateToSlash(todayIsoDate());
+    const todayRows = (existingTaskRows ?? []).filter((row) => row.task_date === todaySlash);
+
+    if (todayRows.length > 0) {
       const subNameMap = new Map<string, string>();
       const subToLarge = new Map<string, string>();
       categories.forEach((c) =>
@@ -139,7 +142,7 @@ export default function CreateShiftPage() {
       );
       const cfg: TaskConfig = {};
       const largeSet = new Set<string>();
-      existingTaskRows.forEach((row) => {
+      todayRows.forEach((row) => {
         const largeId = row.category_large_id || subToLarge.get(row.category_small_id) || '';
         if (!largeId) return;
         largeSet.add(largeId);
@@ -164,8 +167,7 @@ export default function CreateShiftPage() {
       });
       setSelectedLargeIds(Array.from(largeSet));
       setTaskConfig(cfg);
-      const td0 = existingTaskRows[0]?.task_date;
-      setTaskTargetDateIso(td0 && td0.includes('/') ? slashDateToIso(td0) : todayIsoDate());
+      setTaskTargetDateIso(todayIsoDate());
       setHydrated(true);
       return;
     }
@@ -567,7 +569,13 @@ export default function CreateShiftPage() {
             )}
 
             <Stack spacing={4}>
-              {selectedLargeIds.map((largeId) => {
+              {[...selectedLargeIds]
+                .sort((a, b) => {
+                  const aIdx = (categories ?? []).findIndex((c) => c.id === a);
+                  const bIdx = (categories ?? []).findIndex((c) => c.id === b);
+                  return aIdx - bIdx;
+                })
+                .map((largeId) => {
                 const cat = categories?.find((c) => c.id === largeId);
                 if (!cat) return null;
                 const smalls = taskConfig[largeId] ?? [];
