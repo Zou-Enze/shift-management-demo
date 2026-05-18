@@ -72,13 +72,7 @@ export default function ShiftAdjustEditPage() {
     return cat?.sub_categories ?? [];
   }, [dialog, categories]);
 
-  const availableSkills = useMemo(() => {
-    if (!skills || !dialog) return [];
-    const usedSkills = rows
-      .filter((r) => r.categorySmall === dialog.newTask.categorySmall)
-      .map((r) => r.skill);
-    return skills.filter((s) => !usedSkills.includes(s.name));
-  }, [skills, rows, dialog]);
+  const availableSkills = skills ?? [];
 
   const handleRowChange = (row: AdjustRow) => {
     setDialog({

@@ -259,152 +259,179 @@ export default function AdjustTable({ rows, onRowChange }: Props) {
                 {categoryLarge}
               </Box>
 
-              {taskLayouts.map(({ task, taskStart, taskEnd, rowCount, startRow, packedRows }) => (
-                <Fragment key={task.id}>
-                  {/* カテゴリ小ラベル */}
-                  <Box
-                    sx={{
-                      gridColumn: 1,
-                      gridRow: `${startRow} / ${startRow + rowCount}`,
-                      p: '8px 12px',
-                      fontWeight: 600,
-                      fontSize: '13px',
-                      borderLeft: `4px solid ${color}`,
-                      borderRight: BD,
-                      borderBottom: BD,
-                      display: 'flex',
-                      alignItems: 'center',
-                      boxSizing: 'border-box',
-                    }}
-                  >
-                    {task.categorySmall}
-                  </Box>
-
-                  {/* スキル ラベル */}
-                  <Box
-                    sx={{
-                      gridColumn: 2,
-                      gridRow: `${startRow} / ${startRow + rowCount}`,
-                      p: '8px 12px',
-                      fontSize: '13px',
-                      borderRight: BD,
-                      borderBottom: BD,
-                      display: 'flex',
-                      flexDirection: 'column',
-                      justifyContent: 'center',
-                      boxSizing: 'border-box',
-                    }}
-                  >
-                    <Box sx={{ fontWeight: 700, color: 'text.primary', fontSize: '13px' }}>
-                      {task.skill}
-                    </Box>
-                  </Box>
-
-                  {/* タイムライン行 */}
-                  {packedRows.map((rowBlocks, ri) => (
+              {(() => {
+                // 連続する同じカテゴリ小のタスクをグループ化してカテゴリ小ラベルをまとめる
+                const groups: {
+                  categorySmall: string;
+                  startRow: number;
+                  endRow: number;
+                  tasks: typeof taskLayouts;
+                }[] = [];
+                for (const layout of taskLayouts) {
+                  const last = groups[groups.length - 1];
+                  if (last && last.categorySmall === layout.task.categorySmall) {
+                    last.endRow = layout.startRow + layout.rowCount;
+                    last.tasks.push(layout);
+                  } else {
+                    groups.push({
+                      categorySmall: layout.task.categorySmall,
+                      startRow: layout.startRow,
+                      endRow: layout.startRow + layout.rowCount,
+                      tasks: [layout],
+                    });
+                  }
+                }
+                return groups.map((group) => (
+                  <Fragment key={`${group.categorySmall}-${group.startRow}`}>
+                    {/* カテゴリ小ラベル（同じカテゴリ小の全行にスパン） */}
                     <Box
-                      key={ri}
                       sx={{
-                        gridColumn: '3 / ' + (showChangeCol ? '27' : '-1'),
-                        gridRow: startRow + ri,
-                        position: 'relative',
-                        minHeight: 56,
-                        bgcolor: '#FFFFFF',
+                        gridColumn: 1,
+                        gridRow: `${group.startRow} / ${group.endRow}`,
+                        p: '8px 12px',
+                        fontWeight: 600,
+                        fontSize: '13px',
+                        borderLeft: `4px solid ${color}`,
+                        borderRight: BD,
                         borderBottom: BD,
+                        display: 'flex',
+                        alignItems: 'center',
                         boxSizing: 'border-box',
-                        minWidth: 0,
                       }}
                     >
-                      {/* 縦グリッド線 */}
-                      <Box
-                        sx={{
-                          display: 'grid',
-                          gridTemplateColumns: 'repeat(24, 1fr)',
-                          position: 'absolute',
-                          inset: 0,
-                          pointerEvents: 'none',
-                        }}
-                      >
-                        {HOURS.map((_, i) => (
-                          <Box
-                            key={i}
-                            sx={{
-                              borderRight: i < HOURS.length - 1 ? BD : 'none',
-                              boxSizing: 'border-box',
-                            }}
-                          />
-                        ))}
-                      </Box>
+                      {group.categorySmall}
+                    </Box>
 
-                      {/* 割当バー */}
-                      {buildBars(rowBlocks, taskStart, taskEnd).map((bar, bi) => {
-                        const left = `${(bar.startH / RANGE_TOTAL) * 100}%`;
-                        const width = `${((bar.endH - bar.startH) / RANGE_TOTAL) * 100}%`;
-                        const barColor =
-                          bar.type === 'employee'
-                            ? color
-                            : bar.type === 'absent'
-                            ? '#9E9E9E'
-                            : 'error.main';
-                        return (
+                    {group.tasks.map(({ task, taskStart, taskEnd, rowCount, startRow, packedRows }) => (
+                      <Fragment key={task.id}>
+                        {/* スキル ラベル */}
+                        <Box
+                          sx={{
+                            gridColumn: 2,
+                            gridRow: `${startRow} / ${startRow + rowCount}`,
+                            p: '8px 12px',
+                            fontSize: '13px',
+                            borderRight: BD,
+                            borderBottom: BD,
+                            display: 'flex',
+                            flexDirection: 'column',
+                            justifyContent: 'center',
+                            boxSizing: 'border-box',
+                          }}
+                        >
+                          <Box sx={{ fontWeight: 700, color: 'text.primary', fontSize: '13px' }}>
+                            {task.skill}
+                          </Box>
+                        </Box>
+
+                        {/* タイムライン行 */}
+                        {packedRows.map((rowBlocks, ri) => (
                           <Box
-                            key={bi}
+                            key={ri}
                             sx={{
-                              position: 'absolute',
-                              top: 8,
-                              bottom: 8,
-                              left,
-                              width,
-                              bgcolor: barColor,
-                              color: '#fff',
-                              borderRadius: '4px',
+                              gridColumn: '3 / ' + (showChangeCol ? '27' : '-1'),
+                              gridRow: startRow + ri,
+                              position: 'relative',
+                              minHeight: 56,
+                              bgcolor: '#FFFFFF',
+                              borderBottom: BD,
+                              boxSizing: 'border-box',
+                              minWidth: 0,
+                            }}
+                          >
+                            {/* 縦グリッド線 */}
+                            <Box
+                              sx={{
+                                display: 'grid',
+                                gridTemplateColumns: 'repeat(24, 1fr)',
+                                position: 'absolute',
+                                inset: 0,
+                                pointerEvents: 'none',
+                              }}
+                            >
+                              {HOURS.map((_, i) => (
+                                <Box
+                                  key={i}
+                                  sx={{
+                                    borderRight: i < HOURS.length - 1 ? BD : 'none',
+                                    boxSizing: 'border-box',
+                                  }}
+                                />
+                              ))}
+                            </Box>
+
+                            {/* 割当バー */}
+                            {buildBars(rowBlocks, taskStart, taskEnd).map((bar, bi) => {
+                              const left = `${(bar.startH / RANGE_TOTAL) * 100}%`;
+                              const width = `${((bar.endH - bar.startH) / RANGE_TOTAL) * 100}%`;
+                              const barColor =
+                                bar.type === 'employee'
+                                  ? color
+                                  : bar.type === 'absent'
+                                  ? '#9E9E9E'
+                                  : 'error.main';
+                              return (
+                                <Box
+                                  key={bi}
+                                  sx={{
+                                    position: 'absolute',
+                                    top: 8,
+                                    bottom: 8,
+                                    left,
+                                    width,
+                                    bgcolor: barColor,
+                                    color: '#fff',
+                                    borderRadius: '4px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    fontSize: '12px',
+                                    fontWeight: 600,
+                                    overflow: 'hidden',
+                                    whiteSpace: 'nowrap',
+                                    px: 0.5,
+                                    opacity: bar.type === 'absent' ? 0.6 : 0.9,
+                                    '&:hover': { opacity: 1 },
+                                    textDecoration: bar.type === 'absent' ? 'line-through' : 'none',
+                                  }}
+                                >
+                                  {bar.label}
+                                </Box>
+                              );
+                            })}
+                          </Box>
+                        ))}
+
+                        {/* 変更ボタン列 */}
+                        {showChangeCol && (
+                          <Box
+                            sx={{
+                              gridColumn: 27,
+                              gridRow: `${startRow} / ${startRow + rowCount}`,
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'center',
-                              fontSize: '12px',
-                              fontWeight: 600,
-                              overflow: 'hidden',
-                              whiteSpace: 'nowrap',
-                              px: 0.5,
-                              opacity: bar.type === 'absent' ? 0.6 : 0.9,
-                              '&:hover': { opacity: 1 },
-                              textDecoration: bar.type === 'absent' ? 'line-through' : 'none',
+                              borderLeft: BD,
+                              borderBottom: BD,
+                              boxSizing: 'border-box',
+                              p: 1,
                             }}
                           >
-                            {bar.label}
+                            <Button
+                              size="small"
+                              variant="outlined"
+                              onClick={() => onRowChange!(task)}
+                              sx={{ fontSize: '12px', minWidth: 56 }}
+                            >
+                              変更
+                            </Button>
                           </Box>
-                        );
-                      })}
-                    </Box>
-                  ))}
-
-                  {/* 変更ボタン列 */}
-                  {showChangeCol && (
-                    <Box
-                      sx={{
-                        gridColumn: 27,
-                        gridRow: `${startRow} / ${startRow + rowCount}`,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        borderLeft: BD,
-                        borderBottom: BD,
-                        boxSizing: 'border-box',
-                        p: 1,
-                      }}
-                    >
-                      <Button
-                        size="small"
-                        variant="outlined"
-                        onClick={() => onRowChange!(task)}
-                        sx={{ fontSize: '12px', minWidth: 56 }}
-                      >
-                        変更
-                      </Button>
-                    </Box>
-                  )}
-                </Fragment>
-              ))}
+                        )}
+                      </Fragment>
+                    ))}
+                  </Fragment>
+                ));
+              })()}
             </Fragment>
           ))}
         </Box>
