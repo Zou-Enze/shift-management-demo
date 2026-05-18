@@ -136,7 +136,6 @@ export default function GanttChart({ assignments, categories }: Props) {
                   }}
                 >
                   <Typography sx={{ fontWeight: 700, fontSize: '14px' }}>{row.employee_name}</Typography>
-                  <Typography sx={{ fontSize: '12px', color: 'text.secondary' }}>{row.employee_id}</Typography>
                 </Box>
                 <Box
                   sx={{

@@ -82,7 +82,7 @@ export default function SummaryCards({ summary }: Props) {
       </Grid>
       <Grid item xs={12} md={4}>
         <CardItem
-          label="不足工数"
+          label="未割当工数"
           value={summary.shortage_hours}
           unit="時間・人"
           error={summary.shortage_hours > 0}
