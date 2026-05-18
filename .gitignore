@@ -16,3 +16,4 @@ dist-ssr
 /playwright-report/
 /playwright/.cache/
 CLAUDE.md
+.claude/*
