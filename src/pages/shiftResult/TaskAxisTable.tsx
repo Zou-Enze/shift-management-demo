@@ -139,7 +139,12 @@ export default function TaskAxisTable({ assignments, categories, shiftRequests, 
       const cat = categories.find((c) => c.id === largeId);
       const headerRow = currentRow++;
 
-      const assignmentLayouts = list.map((a) => {
+      // 同名 カテゴリ小 を隣接させるためソート（同名内は元の順序を保つ安定ソート）
+      const sortedList = [...list].sort((a, b) =>
+        a.category_small.localeCompare(b.category_small, 'ja')
+      );
+
+      const assignmentLayouts = sortedList.map((a) => {
         const taskStart = Math.floor(parseHour(a.start_time));
         const taskEnd = Math.ceil(parseHour(a.end_time));
         const rowCount = Math.max(1, a.required_count);
