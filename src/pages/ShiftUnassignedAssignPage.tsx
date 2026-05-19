@@ -62,6 +62,7 @@ export default function ShiftUnassignedAssignPage() {
   const allRows = state?.rows ?? [];
 
   const employees = useLiveQuery(() => db.employees.toArray(), []);
+  const skills = useLiveQuery(() => db.skills.toArray(), []);
   const [shiftRequests, setShiftRequests] = useState<ShiftRequest[]>([]);
   useEffect(() => {
     fetch('/data/shift_requests.json')
@@ -80,7 +81,8 @@ export default function ShiftUnassignedAssignPage() {
 
   const [selectedMap, setSelectedMap] = useState<Record<string, string>>({});
 
-  const getAvailableEmployees = (skill: string, startTime: string, endTime: string) => {
+  const getAvailableEmployees = (skillName: string, startTime: string, endTime: string) => {
+    const skillId = (skills ?? []).find((s) => s.name === skillName)?.id;
     const availableEmpIds = new Set(
       shiftRequests
         .filter(
@@ -92,7 +94,7 @@ export default function ShiftUnassignedAssignPage() {
         .map((req) => req.employee_id)
     );
     return (employees ?? []).filter(
-      (e) => e.skills.includes(skill) && availableEmpIds.has(e.id)
+      (e) => skillId !== undefined && e.skills.includes(skillId) && availableEmpIds.has(e.id)
     );
   };
 
