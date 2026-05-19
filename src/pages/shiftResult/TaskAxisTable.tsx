@@ -1,6 +1,7 @@
 import { Fragment, useMemo, useState, useCallback } from 'react';
 import { Box, Menu, MenuItem, Paper, Typography } from '@mui/material';
 import type { Assignment, Category, ShiftRequest } from '../../types';
+import { getCategorySmallNameColor } from '../../constants/categoryColors';
 
 interface Props {
   assignments: Assignment[];
@@ -265,7 +266,7 @@ export default function TaskAxisTable({ assignments, categories, shiftRequests, 
                         p: '8px 12px',
                         fontWeight: 600,
                         fontSize: '13px',
-                        borderLeft: `4px solid ${cat?.color ?? '#888'}`,
+                        borderLeft: `4px solid ${getCategorySmallNameColor(a.category_small)}`,
                         borderRight: BD,
                         borderBottom: BD,
                         display: 'flex',
