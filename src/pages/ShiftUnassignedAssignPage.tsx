@@ -32,6 +32,11 @@ function extractTime(dt: string): string {
   return parts[1] ?? parts[0] ?? '';
 }
 
+function toMinutes(t: string): number {
+  const [h, m] = t.split(':').map(Number);
+  return (h ?? 0) * 60 + (m ?? 0);
+}
+
 const BD = '1px solid #E0E0E0';
 
 const TH_SX = {
@@ -83,13 +88,15 @@ export default function ShiftUnassignedAssignPage() {
 
   const getAvailableEmployees = (skillName: string, startTime: string, endTime: string) => {
     const skillId = (skills ?? []).find((s) => s.name === skillName)?.id;
+    const taskStart = toMinutes(startTime);
+    const taskEnd = toMinutes(endTime);
     const availableEmpIds = new Set(
       shiftRequests
         .filter(
           (req) =>
             req.date === date &&
-            req.preferred_start < endTime &&
-            req.preferred_end > startTime
+            toMinutes(req.preferred_start) <= taskStart &&
+            toMinutes(req.preferred_end) >= taskEnd
         )
         .map((req) => req.employee_id)
     );
