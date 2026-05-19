@@ -259,6 +259,23 @@ export default function ShiftAdjustEditPage() {
 
       <AdjustTable rows={rows} onRowChange={handleRowChange} />
 
+      <Stack direction="row" justifyContent="flex-end" sx={{ mt: 3 }}>
+        <Button
+          variant="contained"
+          onClick={() => navigate('/shift/adjust/unassigned', { state: { rows, date } })}
+          sx={{
+            bgcolor: 'primary.main',
+            color: '#fff',
+            fontWeight: 700,
+            borderRadius: '4px',
+            px: 4,
+            '&:hover': { bgcolor: '#3b3377' },
+          }}
+        >
+          未割当分入力
+        </Button>
+      </Stack>
+
       {/* 変更ダイアログ */}
       <Dialog open={!!dialog} onClose={handleDialogClose} maxWidth="sm" fullWidth>
         <DialogTitle sx={{ fontWeight: 700 }}>
