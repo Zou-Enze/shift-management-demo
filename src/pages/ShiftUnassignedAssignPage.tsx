@@ -48,7 +48,7 @@ function calcSummaryFromRows(rows: AdjustRow[]): ShiftSummary {
   return {
     total_assigned: rows.reduce((s, r) => s + r.assignedEmployees.length, 0),
     total_hours: rows.reduce(
-      (s, r) => s + (parseHoursFromDatetime(r.endDateTime) - parseHoursFromDatetime(r.startDateTime)) * r.requiredCount,
+      (s, r) => s + (parseHoursFromDatetime(r.endDateTime) - parseHoursFromDatetime(r.startDateTime)) * r.assignedEmployees.length,
       0
     ),
     shortage_hours: rows.reduce(
@@ -69,7 +69,7 @@ function calcSummaryFromAssignments(assignments: Assignment[]): ShiftSummary {
   return {
     total_assigned: assignments.reduce((s, a) => s + a.assigned_count, 0),
     total_hours: assignments.reduce(
-      (s, a) => s + (parseH(a.end_time) - parseH(a.start_time)) * a.required_count,
+      (s, a) => s + (parseH(a.end_time) - parseH(a.start_time)) * a.assigned_count,
       0
     ),
     shortage_hours: assignments.reduce(
@@ -107,6 +107,7 @@ export default function ShiftUnassignedAssignPage() {
   const state = location.state as LocationState | null;
   const date = state?.date ?? '';
   const allRows = state?.rows ?? [];
+  const initialRows = state?.initialRows ?? allRows;
 
   const employees = useLiveQuery(() => db.employees.toArray(), []);
   const skills = useLiveQuery(() => db.skills.toArray(), []) as Skill[] | undefined;
@@ -205,6 +206,8 @@ export default function ShiftUnassignedAssignPage() {
     const summary = {
       id: `das-${date}-${Date.now()}`,
       date,
+      before_summary: calcSummaryFromRows(initialRows),
+      after_summary: calcSummaryFromAssignments(assignments),
       assignments,
     };
     await db.daily_adjust_summaries.put(summary);

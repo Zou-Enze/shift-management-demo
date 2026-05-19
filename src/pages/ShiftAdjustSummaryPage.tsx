@@ -12,6 +12,7 @@ import FileDownloadIcon from '@mui/icons-material/FileDownload';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db/database';
 import TaskAxisTable from './shiftResult/TaskAxisTable';
+import BeforeAfterCards from './shiftAdjust/BeforeAfterCards';
 import type { Category, DailyAdjustSummary, ShiftRequest } from '../types';
 
 interface LocationState {
@@ -100,6 +101,10 @@ export default function ShiftAdjustSummaryPage() {
         >
           {date}
         </Typography>
+      )}
+
+      {summary.before_summary && summary.after_summary && (
+        <BeforeAfterCards before={summary.before_summary} after={summary.after_summary} />
       )}
 
       <TaskAxisTable
