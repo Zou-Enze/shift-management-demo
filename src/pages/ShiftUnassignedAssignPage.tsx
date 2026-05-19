@@ -291,7 +291,7 @@ export default function ShiftUnassignedAssignPage() {
                           color="text.secondary"
                           sx={{ fontFamily: 'Hanken Grotesk, sans-serif' }}
                         >
-                          該当スキル保有者なし
+                          割当可能作業員なし
                         </Typography>
                       ) : availableEmps.length === 1 ? (
                         <Typography
