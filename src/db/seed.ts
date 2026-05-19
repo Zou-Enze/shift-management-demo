@@ -9,9 +9,13 @@ import type {
   AssignmentRule,
 } from '../types';
 
+const DEMO_DATA_VERSION = '2026-05-26-shift-demo-v4';
+const DEMO_DATA_VERSION_KEY = 'shift-management-demo:data-version';
+
 export async function seedIfEmpty(): Promise<void> {
   const count = await db.categories.count();
   if (count > 0) {
+    await syncDemoDataIfNeeded();
     await seedModesIfEmpty();
     await seedAssignmentRulesIfEmpty();
     return;
@@ -46,6 +50,31 @@ export async function seedIfEmpty(): Promise<void> {
       await db.assignment_rules.bulkAdd(rules.assignment_rules);
     }
   );
+
+  localStorage.setItem(DEMO_DATA_VERSION_KEY, DEMO_DATA_VERSION);
+}
+
+async function syncDemoDataIfNeeded(): Promise<void> {
+  if (localStorage.getItem(DEMO_DATA_VERSION_KEY) === DEMO_DATA_VERSION) return;
+
+  const [workloads, reqs] = await Promise.all([
+    fetch('/data/workloads.json').then((r) => r.json()) as Promise<{ workloads: Mode[] }>,
+    fetch('/data/shift_requests.json').then((r) => r.json()) as Promise<{
+      shift_requests: ShiftRequest[];
+    }>,
+  ]);
+
+  await db.transaction('rw', [db.modes, db.shift_requests, db.task_rows, db.shift_results], async () => {
+    await db.modes.clear();
+    await db.shift_requests.clear();
+    await db.task_rows.clear();
+    await db.shift_results.clear();
+
+    await db.modes.bulkAdd(workloads.workloads);
+    await db.shift_requests.bulkAdd(reqs.shift_requests);
+  });
+
+  localStorage.setItem(DEMO_DATA_VERSION_KEY, DEMO_DATA_VERSION);
 }
 
 async function seedModesIfEmpty(): Promise<void> {
@@ -102,4 +131,6 @@ export async function resetDatabase(): Promise<void> {
       await db.assignment_rules.bulkAdd(assignment_rules);
     }
   );
+
+  localStorage.setItem(DEMO_DATA_VERSION_KEY, DEMO_DATA_VERSION);
 }
