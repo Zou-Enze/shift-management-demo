@@ -95,8 +95,8 @@ export default function ShiftUnassignedAssignPage() {
         .filter(
           (req) =>
             req.date === date &&
-            toMinutes(req.preferred_start) <= taskStart &&
-            toMinutes(req.preferred_end) >= taskEnd
+            toMinutes(req.preferred_start) === taskStart &&
+            toMinutes(req.preferred_end) === taskEnd
         )
         .map((req) => req.employee_id)
     );
