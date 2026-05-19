@@ -160,7 +160,20 @@ export default function TaskAxisTable({ assignments, categories, shiftRequests, 
         return { a, taskStart, taskEnd, rowCount, startRow, packedRows };
       });
 
-      return { largeId, cat, headerRow, assignmentLayouts };
+      // 連続する同名 カテゴリ小 のスパン情報を計算
+      const categorySmallSpans: Map<number, { startRow: number; totalRows: number }> = new Map();
+      assignmentLayouts.forEach((al, idx) => {
+        if (idx === 0 || assignmentLayouts[idx - 1].a.category_small !== al.a.category_small) {
+          categorySmallSpans.set(idx, { startRow: al.startRow, totalRows: al.rowCount });
+        } else {
+          const prev = categorySmallSpans.get(
+            [...categorySmallSpans.keys()].filter((k) => k < idx).at(-1)!
+          )!;
+          prev.totalRows += al.rowCount;
+        }
+      });
+
+      return { largeId, cat, headerRow, assignmentLayouts, categorySmallSpans };
     });
   }, [sortedEntries, categories, reqMap]);
 
@@ -236,7 +249,7 @@ export default function TaskAxisTable({ assignments, categories, shiftRequests, 
             ))}
 
             {/* データ行 */}
-            {layoutData.map(({ largeId, cat, headerRow, assignmentLayouts }) => (
+            {layoutData.map(({ largeId, cat, headerRow, assignmentLayouts, categorySmallSpans }) => (
               <Fragment key={largeId}>
                 {/* 大分類ヘッダー行 */}
                 <Box
@@ -256,26 +269,31 @@ export default function TaskAxisTable({ assignments, categories, shiftRequests, 
                   {cat?.name ?? largeId}
                 </Box>
 
-                {assignmentLayouts.map(({ a, taskStart, taskEnd, rowCount, startRow, packedRows }) => (
+                {assignmentLayouts.map(({ a, taskStart, taskEnd, rowCount, startRow, packedRows }, idx) => (
                   <Fragment key={a.task_id}>
-                    {/* カテゴリ小ラベル（rowSpan相当） */}
-                    <Box
-                      sx={{
-                        gridColumn: 1,
-                        gridRow: `${startRow} / ${startRow + rowCount}`,
-                        p: '8px 12px',
-                        fontWeight: 600,
-                        fontSize: '13px',
-                        borderLeft: `4px solid ${getCategorySmallNameColor(a.category_small)}`,
-                        borderRight: BD,
-                        borderBottom: BD,
-                        display: 'flex',
-                        alignItems: 'center',
-                        boxSizing: 'border-box',
-                      }}
-                    >
-                      {a.category_small}
-                    </Box>
+                    {/* カテゴリ小ラベル（同名は結合） */}
+                    {categorySmallSpans.has(idx) && (() => {
+                      const span = categorySmallSpans.get(idx)!;
+                      return (
+                        <Box
+                          sx={{
+                            gridColumn: 1,
+                            gridRow: `${span.startRow} / ${span.startRow + span.totalRows}`,
+                            p: '8px 12px',
+                            fontWeight: 600,
+                            fontSize: '13px',
+                            borderLeft: `4px solid ${getCategorySmallNameColor(a.category_small)}`,
+                            borderRight: BD,
+                            borderBottom: BD,
+                            display: 'flex',
+                            alignItems: 'center',
+                            boxSizing: 'border-box',
+                          }}
+                        >
+                          {a.category_small}
+                        </Box>
+                      );
+                    })()}
                     {/* スキルラベル（rowSpan相当） */}
                     <Box
                       sx={{
