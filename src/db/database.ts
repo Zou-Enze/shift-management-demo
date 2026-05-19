@@ -8,6 +8,7 @@ import type {
   ShiftResult,
   TaskRow,
   DailyAdjustSummary,
+  AssignmentRule,
 } from '../types';
 
 export const db = new Dexie('ShiftMgrDB') as Dexie & {
@@ -19,6 +20,7 @@ export const db = new Dexie('ShiftMgrDB') as Dexie & {
   shift_results: EntityTable<ShiftResult, 'id'>;
   task_rows: EntityTable<TaskRow, 'id'>;
   daily_adjust_summaries: EntityTable<DailyAdjustSummary, 'id'>;
+  assignment_rules: EntityTable<AssignmentRule, 'id'>;
 };
 
 db.version(1).stores({
@@ -52,4 +54,16 @@ db.version(3).stores({
   shift_results: '&id',
   task_rows: '&id, category_large_id',
   daily_adjust_summaries: '&id, date',
+});
+
+db.version(4).stores({
+  categories: '&id, name',
+  skills: '&id, name',
+  modes: '&id, name',
+  employees: '&id, name',
+  shift_requests: '&id, date, employee_id',
+  shift_results: '&id',
+  task_rows: '&id, category_large_id',
+  daily_adjust_summaries: '&id, date',
+  assignment_rules: '&id, priority',
 });

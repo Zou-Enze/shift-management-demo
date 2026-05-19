@@ -111,3 +111,13 @@ export interface DailyAdjustSummary {
   after_summary?: ShiftSummary;
   assignments: Assignment[];
 }
+
+export interface AssignmentRule {
+  id: string;
+  content: string;
+  description: string;
+  settingValue: string;
+  hasInput: boolean;
+  priority: number;
+  enabled: boolean;
+}

@@ -4,11 +4,12 @@ import RestartAltIcon from '@mui/icons-material/RestartAlt';
 import CategoryManager from './master/CategoryManager';
 import SkillManager from './master/SkillManager';
 import EmployeeManager from './master/EmployeeManager';
+import AssignmentRuleManager from './master/AssignmentRuleManager';
 import ConfirmDialog from '../components/ConfirmDialog';
 import { resetDatabase } from '../db/seed';
 
 export default function MasterPage() {
-  const [tab, setTab] = useState<'category' | 'skill' | 'employee'>('category');
+  const [tab, setTab] = useState<'category' | 'skill' | 'employee' | 'rule'>('category');
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [snackbar, setSnackbar] = useState<{ open: boolean; success: boolean }>({ open: false, success: true });
 
@@ -46,11 +47,13 @@ export default function MasterPage() {
         <Tab value="category" label="カテゴリ管理" sx={{ fontWeight: 600 }} />
         <Tab value="skill" label="スキル管理" sx={{ fontWeight: 600 }} />
         <Tab value="employee" label="要員管理" sx={{ fontWeight: 600 }} />
+        <Tab value="rule" label="割当ルール" sx={{ fontWeight: 600 }} />
       </Tabs>
 
       {tab === 'category' && <CategoryManager />}
       {tab === 'skill' && <SkillManager />}
       {tab === 'employee' && <EmployeeManager />}
+      {tab === 'rule' && <AssignmentRuleManager />}
 
       <ConfirmDialog
         open={confirmOpen}

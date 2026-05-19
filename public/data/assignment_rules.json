@@ -1,0 +1,67 @@
+{
+  "assignment_rules": [
+    {
+      "id": "R001",
+      "content": "最大連続勤務日数",
+      "description": "連続勤務による疲労を防止する",
+      "settingValue": "5",
+      "hasInput": true,
+      "priority": 1,
+      "enabled": true
+    },
+    {
+      "id": "R002",
+      "content": "最低勤務間インターバル",
+      "description": "退勤から次回出動まで十分な休息を確保する",
+      "settingValue": "9",
+      "hasInput": true,
+      "priority": 2,
+      "enabled": true
+    },
+    {
+      "id": "R003",
+      "content": "スキル・資格制約",
+      "description": "資格保有者のみ対象業務へ配置する",
+      "settingValue": "",
+      "hasInput": false,
+      "priority": 3,
+      "enabled": true
+    },
+    {
+      "id": "R004",
+      "content": "月間残業上限",
+      "description": "長時間残業を抑制する",
+      "settingValue": "45",
+      "hasInput": true,
+      "priority": 4,
+      "enabled": true
+    },
+    {
+      "id": "R005",
+      "content": "夜勤の公平配分",
+      "description": "夜勤回数の偏りを防止する",
+      "settingValue": "2",
+      "hasInput": true,
+      "priority": 5,
+      "enabled": true
+    },
+    {
+      "id": "R006",
+      "content": "マルチスキル優先配置",
+      "description": "複数業務対応可能者を優先配置する",
+      "settingValue": "",
+      "hasInput": false,
+      "priority": 6,
+      "enabled": true
+    },
+    {
+      "id": "R007",
+      "content": "新人・ベテラン混成",
+      "description": "新人のみのシフトを防止する",
+      "settingValue": "30",
+      "hasInput": true,
+      "priority": 7,
+      "enabled": true
+    }
+  ]
+}

@@ -6,16 +6,18 @@ import type {
   Employee,
   ShiftRequest,
   ShiftResult,
+  AssignmentRule,
 } from '../types';
 
 export async function seedIfEmpty(): Promise<void> {
   const count = await db.categories.count();
   if (count > 0) {
     await seedModesIfEmpty();
+    await seedAssignmentRulesIfEmpty();
     return;
   }
 
-  const [cats, skills, workloads, emps, reqs, result] = await Promise.all([
+  const [cats, skills, workloads, emps, reqs, result, rules] = await Promise.all([
     fetch('/data/categories.json').then((r) => r.json()) as Promise<{ categories: Category[] }>,
     fetch('/data/skills.json').then((r) => r.json()) as Promise<{ skills: Skill[] }>,
     fetch('/data/workloads.json').then((r) => r.json()) as Promise<{ workloads: Mode[] }>,
@@ -26,11 +28,14 @@ export async function seedIfEmpty(): Promise<void> {
     fetch('/data/shift_result.json').then((r) => r.json()) as Promise<{
       shift_result: ShiftResult;
     }>,
+    fetch('/data/assignment_rules.json').then((r) => r.json()) as Promise<{
+      assignment_rules: AssignmentRule[];
+    }>,
   ]);
 
   await db.transaction(
     'rw',
-    [db.categories, db.skills, db.modes, db.employees, db.shift_requests, db.shift_results],
+    [db.categories, db.skills, db.modes, db.employees, db.shift_requests, db.shift_results, db.assignment_rules],
     async () => {
       await db.categories.bulkAdd(cats.categories);
       await db.skills.bulkAdd(skills.skills);
@@ -38,6 +43,7 @@ export async function seedIfEmpty(): Promise<void> {
       await db.employees.bulkAdd(emps.employees);
       await db.shift_requests.bulkAdd(reqs.shift_requests);
       await db.shift_results.add(result.shift_result);
+      await db.assignment_rules.bulkAdd(rules.assignment_rules);
     }
   );
 }
@@ -48,6 +54,14 @@ async function seedModesIfEmpty(): Promise<void> {
 
   const { workloads } = await fetch('/data/workloads.json').then((r) => r.json()) as { workloads: Mode[] };
   await db.modes.bulkAdd(workloads);
+}
+
+async function seedAssignmentRulesIfEmpty(): Promise<void> {
+  const rulesCount = await db.assignment_rules.count();
+  if (rulesCount > 0) return;
+
+  const { assignment_rules } = await fetch('/data/assignment_rules.json').then((r) => r.json()) as { assignment_rules: AssignmentRule[] };
+  await db.assignment_rules.bulkAdd(assignment_rules);
 }
 
 export async function resetDatabase(): Promise<void> {
@@ -64,9 +78,11 @@ export async function resetDatabase(): Promise<void> {
     }>,
   ]);
 
+  const { assignment_rules } = await fetch('/data/assignment_rules.json').then((r) => r.json()) as { assignment_rules: AssignmentRule[] };
+
   await db.transaction(
     'rw',
-    [db.categories, db.skills, db.modes, db.employees, db.shift_requests, db.shift_results, db.task_rows],
+    [db.categories, db.skills, db.modes, db.employees, db.shift_requests, db.shift_results, db.task_rows, db.assignment_rules],
     async () => {
       await db.categories.clear();
       await db.skills.clear();
@@ -75,6 +91,7 @@ export async function resetDatabase(): Promise<void> {
       await db.shift_requests.clear();
       await db.shift_results.clear();
       await db.task_rows.clear();
+      await db.assignment_rules.clear();
 
       await db.categories.bulkAdd(cats.categories);
       await db.skills.bulkAdd(skills.skills);
@@ -82,6 +99,7 @@ export async function resetDatabase(): Promise<void> {
       await db.employees.bulkAdd(emps.employees);
       await db.shift_requests.bulkAdd(reqs.shift_requests);
       await db.shift_results.add(result.shift_result);
+      await db.assignment_rules.bulkAdd(assignment_rules);
     }
   );
 }
