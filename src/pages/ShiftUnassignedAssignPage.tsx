@@ -3,9 +3,10 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import {
   Box,
   Button,
-  Checkbox,
   FormControlLabel,
   Paper,
+  Radio,
+  RadioGroup,
   Stack,
   Table,
   TableBody,
@@ -60,6 +61,10 @@ export default function ShiftUnassignedAssignPage() {
   const allRows = state?.rows ?? [];
 
   const employees = useLiveQuery(() => db.employees.toArray(), []);
+  const shiftRequests = useLiveQuery(
+    () => (date ? db.shift_requests.where('date').equals(date).toArray() : Promise.resolve([])),
+    [date]
+  );
 
   const unassignedRows = useMemo(
     () =>
@@ -69,21 +74,21 @@ export default function ShiftUnassignedAssignPage() {
     [allRows]
   );
 
-  const [selectedMap, setSelectedMap] = useState<Record<string, Set<string>>>({});
+  const [selectedMap, setSelectedMap] = useState<Record<string, string>>({});
 
-  const getAvailableEmployees = (skill: string) =>
-    (employees ?? []).filter((e) => e.skills.includes(skill));
+  const getAvailableEmployees = (skill: string, startTime: string, endTime: string) => {
+    const availableEmpIds = new Set(
+      (shiftRequests ?? [])
+        .filter((req) => req.preferred_start < endTime && req.preferred_end > startTime)
+        .map((req) => req.employee_id)
+    );
+    return (employees ?? []).filter(
+      (e) => e.skills.includes(skill) && availableEmpIds.has(e.id)
+    );
+  };
 
-  const toggleEmployee = (rowId: string, empId: string) => {
-    setSelectedMap((prev) => {
-      const current = new Set(prev[rowId] ?? []);
-      if (current.has(empId)) {
-        current.delete(empId);
-      } else {
-        current.add(empId);
-      }
-      return { ...prev, [rowId]: current };
-    });
+  const selectEmployee = (rowId: string, empId: string) => {
+    setSelectedMap((prev) => ({ ...prev, [rowId]: empId }));
   };
 
   if (!state?.rows) {
@@ -183,8 +188,10 @@ export default function ShiftUnassignedAssignPage() {
             </TableHead>
             <TableBody>
               {unassignedRows.map((row) => {
-                const availableEmps = getAvailableEmployees(row.skill);
-                const selected = selectedMap[row.id] ?? new Set<string>();
+                const startTime = extractTime(row.startDateTime);
+                const endTime = extractTime(row.endDateTime);
+                const availableEmps = getAvailableEmployees(row.skill, startTime, endTime);
+                const selectedEmpId = selectedMap[row.id] ?? '';
                 return (
                   <TableRow
                     key={row.id}
@@ -196,8 +203,8 @@ export default function ShiftUnassignedAssignPage() {
                     <TableCell sx={TD_SX}>{row.categoryLarge}</TableCell>
                     <TableCell sx={TD_SX}>{row.categorySmall}</TableCell>
                     <TableCell sx={TD_SX}>{row.skill}</TableCell>
-                    <TableCell sx={TD_SX}>{extractTime(row.startDateTime)}</TableCell>
-                    <TableCell sx={TD_SX}>{extractTime(row.endDateTime)}</TableCell>
+                    <TableCell sx={TD_SX}>{startTime}</TableCell>
+                    <TableCell sx={TD_SX}>{endTime}</TableCell>
                     <TableCell sx={{ ...TD_SX, borderRight: 'none' }}>
                       {availableEmps.length === 0 ? (
                         <Typography
@@ -207,16 +214,25 @@ export default function ShiftUnassignedAssignPage() {
                         >
                           該当スキル保有者なし
                         </Typography>
+                      ) : availableEmps.length === 1 ? (
+                        <Typography
+                          variant="body2"
+                          sx={{ fontFamily: 'Hanken Grotesk, sans-serif', fontSize: '13px' }}
+                        >
+                          {availableEmps[0].name}
+                        </Typography>
                       ) : (
-                        <Stack spacing={0.25}>
+                        <RadioGroup
+                          value={selectedEmpId}
+                          onChange={(e) => selectEmployee(row.id, e.target.value)}
+                        >
                           {availableEmps.map((emp) => (
                             <FormControlLabel
                               key={emp.id}
+                              value={emp.id}
                               control={
-                                <Checkbox
+                                <Radio
                                   size="small"
-                                  checked={selected.has(emp.id)}
-                                  onChange={() => toggleEmployee(row.id, emp.id)}
                                   sx={{
                                     color: '#C9C4D2',
                                     '&.Mui-checked': { color: 'primary.main' },
@@ -235,7 +251,7 @@ export default function ShiftUnassignedAssignPage() {
                               sx={{ m: 0, alignItems: 'center' }}
                             />
                           ))}
-                        </Stack>
+                        </RadioGroup>
                       )}
                     </TableCell>
                   </TableRow>
