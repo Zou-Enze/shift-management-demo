@@ -171,20 +171,52 @@ export default function TaskAxisTable({ assignments, categories, shiftRequests, 
         return { a, taskStart, taskEnd, rowCount, startRow, packedRows };
       });
 
-      // 連続する同名 カテゴリ小 のスパン情報を計算
-      const categorySmallSpans: Map<number, { startRow: number; totalRows: number }> = new Map();
-      assignmentLayouts.forEach((al, idx) => {
-        if (idx === 0 || assignmentLayouts[idx - 1].a.category_small !== al.a.category_small) {
-          categorySmallSpans.set(idx, { startRow: al.startRow, totalRows: al.rowCount });
+      // カテゴリ小 → スキル の二重グループ化
+      type SkillGroup = {
+        skill: string;
+        startRow: number;
+        endRow: number;
+        layouts: typeof assignmentLayouts;
+      };
+      type CatGroup = {
+        categorySmall: string;
+        startRow: number;
+        endRow: number;
+        skillGroups: SkillGroup[];
+      };
+      const catGroups: CatGroup[] = [];
+      for (const layout of assignmentLayouts) {
+        const lastCat = catGroups[catGroups.length - 1];
+        if (lastCat && lastCat.categorySmall === layout.a.category_small) {
+          lastCat.endRow = layout.startRow + layout.rowCount;
+          const lastSkill = lastCat.skillGroups[lastCat.skillGroups.length - 1];
+          if (lastSkill && lastSkill.skill === (layout.a.task_name ?? '')) {
+            lastSkill.endRow = layout.startRow + layout.rowCount;
+            lastSkill.layouts.push(layout);
+          } else {
+            lastCat.skillGroups.push({
+              skill: layout.a.task_name ?? '',
+              startRow: layout.startRow,
+              endRow: layout.startRow + layout.rowCount,
+              layouts: [layout],
+            });
+          }
         } else {
-          const prev = categorySmallSpans.get(
-            [...categorySmallSpans.keys()].filter((k) => k < idx).at(-1)!
-          )!;
-          prev.totalRows += al.rowCount;
+          catGroups.push({
+            categorySmall: layout.a.category_small,
+            startRow: layout.startRow,
+            endRow: layout.startRow + layout.rowCount,
+            skillGroups: [{
+              skill: layout.a.task_name ?? '',
+              startRow: layout.startRow,
+              endRow: layout.startRow + layout.rowCount,
+              layouts: [layout],
+            }],
+          });
         }
-      });
+      }
 
-      return { largeId, cat, headerRow, assignmentLayouts, categorySmallSpans };
+      return { largeId, cat, headerRow, catGroups };
     });
   }, [sortedEntries, categories, reqMap]);
 
@@ -260,7 +292,7 @@ export default function TaskAxisTable({ assignments, categories, shiftRequests, 
             ))}
 
             {/* データ行 */}
-            {layoutData.map(({ largeId, cat, headerRow, assignmentLayouts, categorySmallSpans }) => (
+            {layoutData.map(({ largeId, cat, headerRow, catGroups }) => (
               <Fragment key={largeId}>
                 {/* 大分類ヘッダー行 */}
                 <Box
@@ -280,39 +312,17 @@ export default function TaskAxisTable({ assignments, categories, shiftRequests, 
                   {cat?.name ?? largeId}
                 </Box>
 
-                {assignmentLayouts.map(({ a, taskStart, taskEnd, rowCount, startRow, packedRows }, idx) => (
-                  <Fragment key={a.task_id}>
-                    {/* カテゴリ小ラベル（同名は結合） */}
-                    {categorySmallSpans.has(idx) && (() => {
-                      const span = categorySmallSpans.get(idx)!;
-                      return (
-                        <Box
-                          sx={{
-                            gridColumn: 1,
-                            gridRow: `${span.startRow} / ${span.startRow + span.totalRows}`,
-                            p: '8px 12px',
-                            fontWeight: 600,
-                            fontSize: '13px',
-                            borderLeft: `4px solid ${getCategorySmallNameColor(a.category_small)}`,
-                            borderRight: BD,
-                            borderBottom: BD,
-                            display: 'flex',
-                            alignItems: 'center',
-                            boxSizing: 'border-box',
-                          }}
-                        >
-                          {a.category_small}
-                        </Box>
-                      );
-                    })()}
-                    {/* スキルラベル（rowSpan相当） */}
+                {catGroups.map((catGroup) => (
+                  <Fragment key={`${catGroup.categorySmall}-${catGroup.startRow}`}>
+                    {/* カテゴリ小ラベル（カテゴリ小グループ全体にスパン） */}
                     <Box
                       sx={{
-                        gridColumn: 2,
-                        gridRow: `${startRow} / ${startRow + rowCount}`,
+                        gridColumn: 1,
+                        gridRow: `${catGroup.startRow} / ${catGroup.endRow}`,
                         p: '8px 12px',
+                        fontWeight: 600,
                         fontSize: '13px',
-                        color: 'text.secondary',
+                        borderLeft: `4px solid ${getCategorySmallNameColor(catGroup.categorySmall)}`,
                         borderRight: BD,
                         borderBottom: BD,
                         display: 'flex',
@@ -320,80 +330,106 @@ export default function TaskAxisTable({ assignments, categories, shiftRequests, 
                         boxSizing: 'border-box',
                       }}
                     >
-                      {a.task_name && a.task_name !== a.category_small ? a.task_name : ''}
+                      {catGroup.categorySmall}
                     </Box>
 
-                    {/* タイムライン行 */}
-                    {packedRows.map((rowBlocks, ri) => (
-                      <Box
-                        key={ri}
-                        sx={{
-                          gridColumn: '3 / -1',
-                          gridRow: startRow + ri,
-                          position: 'relative',
-                          minHeight: 56,
-                          bgcolor: '#FFFFFF',
-                          borderBottom: BD,
-                          boxSizing: 'border-box',
-                          minWidth: 0,
-                        }}
-                      >
-                        {/* 縦グリッド線 */}
+                    {catGroup.skillGroups.map((skillGroup) => (
+                      <Fragment key={`${skillGroup.skill}-${skillGroup.startRow}`}>
+                        {/* スキルラベル（スキルグループ全体にスパン） */}
                         <Box
                           sx={{
-                            display: 'grid',
-                            gridTemplateColumns: 'repeat(24, 1fr)',
-                            position: 'absolute',
-                            inset: 0,
-                            pointerEvents: 'none',
+                            gridColumn: 2,
+                            gridRow: `${skillGroup.startRow} / ${skillGroup.endRow}`,
+                            p: '8px 12px',
+                            fontSize: '13px',
+                            color: 'text.secondary',
+                            borderRight: BD,
+                            borderBottom: BD,
+                            display: 'flex',
+                            alignItems: 'center',
+                            boxSizing: 'border-box',
                           }}
                         >
-                          {HOURS.map((_, i) => (
-                            <Box
-                              key={i}
-                              sx={{
-                                borderRight: i < HOURS.length - 1 ? BD : 'none',
-                                boxSizing: 'border-box',
-                              }}
-                            />
-                          ))}
+                          {skillGroup.skill !== catGroup.categorySmall ? skillGroup.skill : ''}
                         </Box>
 
-                        {/* 割当バー */}
-                        {buildBars(rowBlocks, taskStart, taskEnd).map((bar, bi) => {
-                          const left = `${(bar.startH / RANGE_TOTAL) * 100}%`;
-                          const width = `${((bar.endH - bar.startH) / RANGE_TOTAL) * 100}%`;
-                          return (
-                            <Box
-                              key={bi}
-                              onContextMenu={(e) => handleContextMenuOpen(e, bar.type)}
-                              sx={{
-                                position: 'absolute',
-                                top: 8,
-                                bottom: 8,
-                                left,
-                                width,
-                                bgcolor: bar.type === 'employee' ? (cat?.color ?? '#888') : 'error.main',
-                                color: '#fff',
-                                borderRadius: '4px',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                fontSize: '12px',
-                                fontWeight: 600,
-                                overflow: 'hidden',
-                                whiteSpace: 'nowrap',
-                                px: 0.5,
-                                cursor: 'context-menu',
-                                opacity: 0.9,
-                                '&:hover': { opacity: 1 },
-                              }}
-                            >
-                              {bar.label}
-                            </Box>
-                          );
-                        })}
-                      </Box>
+                        {skillGroup.layouts.map(({ a, taskStart, taskEnd, startRow, packedRows }) => (
+                          <Fragment key={a.task_id}>
+                            {/* タイムライン行 */}
+                            {packedRows.map((rowBlocks, ri) => (
+                              <Box
+                                key={ri}
+                                sx={{
+                                  gridColumn: '3 / -1',
+                                  gridRow: startRow + ri,
+                                  position: 'relative',
+                                  minHeight: 56,
+                                  bgcolor: '#FFFFFF',
+                                  borderBottom: BD,
+                                  boxSizing: 'border-box',
+                                  minWidth: 0,
+                                }}
+                              >
+                                {/* 縦グリッド線 */}
+                                <Box
+                                  sx={{
+                                    display: 'grid',
+                                    gridTemplateColumns: 'repeat(24, 1fr)',
+                                    position: 'absolute',
+                                    inset: 0,
+                                    pointerEvents: 'none',
+                                  }}
+                                >
+                                  {HOURS.map((_, i) => (
+                                    <Box
+                                      key={i}
+                                      sx={{
+                                        borderRight: i < HOURS.length - 1 ? BD : 'none',
+                                        boxSizing: 'border-box',
+                                      }}
+                                    />
+                                  ))}
+                                </Box>
+
+                                {/* 割当バー */}
+                                {buildBars(rowBlocks, taskStart, taskEnd).map((bar, bi) => {
+                                  const left = `${(bar.startH / RANGE_TOTAL) * 100}%`;
+                                  const width = `${((bar.endH - bar.startH) / RANGE_TOTAL) * 100}%`;
+                                  return (
+                                    <Box
+                                      key={bi}
+                                      onContextMenu={(e) => handleContextMenuOpen(e, bar.type)}
+                                      sx={{
+                                        position: 'absolute',
+                                        top: 8,
+                                        bottom: 8,
+                                        left,
+                                        width,
+                                        bgcolor: bar.type === 'employee' ? (cat?.color ?? '#888') : 'error.main',
+                                        color: '#fff',
+                                        borderRadius: '4px',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        fontSize: '12px',
+                                        fontWeight: 600,
+                                        overflow: 'hidden',
+                                        whiteSpace: 'nowrap',
+                                        px: 0.5,
+                                        cursor: 'context-menu',
+                                        opacity: 0.9,
+                                        '&:hover': { opacity: 1 },
+                                      }}
+                                    >
+                                      {bar.label}
+                                    </Box>
+                                  );
+                                })}
+                              </Box>
+                            ))}
+                          </Fragment>
+                        ))}
+                      </Fragment>
                     ))}
                   </Fragment>
                 ))}
