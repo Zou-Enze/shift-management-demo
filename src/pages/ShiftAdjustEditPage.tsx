@@ -143,10 +143,12 @@ export default function ShiftAdjustEditPage() {
       const next = [...prev];
 
       // Find the correct insertion position:
-      // 1. After the last row with the same categoryLarge + categorySmall
-      // 2. Fallback: after the last row with the same categoryLarge
-      // 3. Fallback: after dialog.row
+      // 1. After the last row with same categoryLarge + categorySmall + skill (merge into existing skill group)
+      // 2. After the last row with same categoryLarge + categorySmall (new skill appended to categorySmall section)
+      // 3. After the last row with same categoryLarge (new categorySmall appended to categoryLarge section)
+      // 4. Fallback: after dialog.row
       let insertAfterIdx = prev.findIndex((r) => r.id === row.id);
+      let lastSameSkillIdx = -1;
       let lastSameCatSmallIdx = -1;
       let lastSameCatLargeIdx = -1;
       for (let i = 0; i < prev.length; i++) {
@@ -154,10 +156,15 @@ export default function ShiftAdjustEditPage() {
           lastSameCatLargeIdx = i;
           if (prev[i].categorySmall === newTask.categorySmall) {
             lastSameCatSmallIdx = i;
+            if (prev[i].skill === newTask.skill) {
+              lastSameSkillIdx = i;
+            }
           }
         }
       }
-      if (lastSameCatSmallIdx !== -1) {
+      if (lastSameSkillIdx !== -1) {
+        insertAfterIdx = lastSameSkillIdx;
+      } else if (lastSameCatSmallIdx !== -1) {
         insertAfterIdx = lastSameCatSmallIdx;
       } else if (lastSameCatLargeIdx !== -1) {
         insertAfterIdx = lastSameCatLargeIdx;
