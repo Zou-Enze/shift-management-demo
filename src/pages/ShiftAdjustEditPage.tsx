@@ -140,9 +140,30 @@ export default function ShiftAdjustEditPage() {
     }
 
     setRows((prev) => {
-      const idx = prev.findIndex((r) => r.id === row.id);
       const next = [...prev];
-      next.splice(idx + 1, 0, newRow);
+
+      // Find the correct insertion position:
+      // 1. After the last row with the same categoryLarge + categorySmall
+      // 2. Fallback: after the last row with the same categoryLarge
+      // 3. Fallback: after dialog.row
+      let insertAfterIdx = prev.findIndex((r) => r.id === row.id);
+      let lastSameCatSmallIdx = -1;
+      let lastSameCatLargeIdx = -1;
+      for (let i = 0; i < prev.length; i++) {
+        if (prev[i].categoryLarge === row.categoryLarge) {
+          lastSameCatLargeIdx = i;
+          if (prev[i].categorySmall === newTask.categorySmall) {
+            lastSameCatSmallIdx = i;
+          }
+        }
+      }
+      if (lastSameCatSmallIdx !== -1) {
+        insertAfterIdx = lastSameCatSmallIdx;
+      } else if (lastSameCatLargeIdx !== -1) {
+        insertAfterIdx = lastSameCatLargeIdx;
+      }
+
+      next.splice(insertAfterIdx + 1, 0, newRow);
       return next;
     });
     handleDialogClose();
