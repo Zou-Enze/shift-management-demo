@@ -107,5 +107,7 @@ export interface TaskRow {
 export interface DailyAdjustSummary {
   id: string;
   date: string;
+  before_summary?: ShiftSummary;
+  after_summary?: ShiftSummary;
   assignments: Assignment[];
 }

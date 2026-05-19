@@ -45,7 +45,7 @@ export default function ShiftAdjustPage() {
   };
 
   const handleGoToEdit = () => {
-    navigate('/shift/adjust/edit', { state: { rows, date } });
+    navigate('/shift/adjust/edit', { state: { rows, date, initialRows: rows } });
   };
 
   return (

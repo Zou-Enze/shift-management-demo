@@ -30,6 +30,7 @@ import type { AdjustEmployee, AdjustRow } from './shiftAdjust/adjustTypes';
 interface LocationState {
   rows: AdjustRow[];
   date: string;
+  initialRows?: AdjustRow[];
 }
 
 interface NewTaskForm {
@@ -59,6 +60,7 @@ export default function ShiftAdjustEditPage() {
   const location = useLocation();
   const state = location.state as LocationState | null;
   const date = state?.date ?? '';
+  const initialRows = state?.initialRows ?? state?.rows ?? [];
 
   const categories = useLiveQuery(() => db.categories.toArray(), []) as Category[] | undefined;
   const skills = useLiveQuery(() => db.skills.toArray(), []) as Skill[] | undefined;
@@ -266,7 +268,7 @@ export default function ShiftAdjustEditPage() {
       <Stack direction="row" justifyContent="flex-end" sx={{ mt: 3 }}>
         <Button
           variant="contained"
-          onClick={() => navigate('/shift/adjust/unassigned', { state: { rows, date } })}
+          onClick={() => navigate('/shift/adjust/unassigned', { state: { rows, date, initialRows } })}
           sx={{
             bgcolor: 'primary.main',
             color: '#fff',

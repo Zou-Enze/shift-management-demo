@@ -19,12 +19,13 @@ import {
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db/database';
-import type { Assignment, AssignedEmployee, Category, ShiftRequest, Skill } from '../types';
+import type { Assignment, AssignedEmployee, Category, ShiftRequest, ShiftSummary, Skill } from '../types';
 import type { AdjustRow } from './shiftAdjust/adjustTypes';
 
 interface LocationState {
   rows: AdjustRow[];
   date: string;
+  initialRows?: AdjustRow[];
 }
 
 function extractTime(dt: string): string {
@@ -35,6 +36,47 @@ function extractTime(dt: string): string {
 function toMinutes(t: string): number {
   const [h, m] = t.split(':').map(Number);
   return (h ?? 0) * 60 + (m ?? 0);
+}
+
+function parseHoursFromDatetime(dt: string): number {
+  const time = extractTime(dt);
+  const [h, m] = time.split(':').map(Number);
+  return (h ?? 0) + (m ?? 0) / 60;
+}
+
+function calcSummaryFromRows(rows: AdjustRow[]): ShiftSummary {
+  return {
+    total_assigned: rows.reduce((s, r) => s + r.assignedEmployees.length, 0),
+    total_hours: rows.reduce(
+      (s, r) => s + (parseHoursFromDatetime(r.endDateTime) - parseHoursFromDatetime(r.startDateTime)) * r.requiredCount,
+      0
+    ),
+    shortage_hours: rows.reduce(
+      (s, r) =>
+        s +
+        (parseHoursFromDatetime(r.endDateTime) - parseHoursFromDatetime(r.startDateTime)) *
+          Math.max(0, r.requiredCount - r.assignedEmployees.length),
+      0
+    ),
+  };
+}
+
+function calcSummaryFromAssignments(assignments: Assignment[]): ShiftSummary {
+  const parseH = (t: string) => {
+    const [h, m] = t.split(':').map(Number);
+    return (h ?? 0) + (m ?? 0) / 60;
+  };
+  return {
+    total_assigned: assignments.reduce((s, a) => s + a.assigned_count, 0),
+    total_hours: assignments.reduce(
+      (s, a) => s + (parseH(a.end_time) - parseH(a.start_time)) * a.required_count,
+      0
+    ),
+    shortage_hours: assignments.reduce(
+      (s, a) => s + (parseH(a.end_time) - parseH(a.start_time)) * a.shortage,
+      0
+    ),
+  };
 }
 
 const BD = '1px solid #E0E0E0';
