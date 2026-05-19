@@ -87,6 +87,13 @@
     { "id": "REQ-084", "date": "2026/05/26", "employee_id": "EMP-035", "employee_name": "大野 康介", "preferred_start": "13:00", "preferred_end": "17:00" },
     { "id": "REQ-085", "date": "2026/05/26", "employee_id": "EMP-019", "employee_name": "前田 俊介", "preferred_start": "15:00", "preferred_end": "19:00" },
     { "id": "REQ-086", "date": "2026/05/26", "employee_id": "EMP-021", "employee_name": "高橋 誠", "preferred_start": "15:00", "preferred_end": "19:00" },
-    { "id": "REQ-087", "date": "2026/05/26", "employee_id": "EMP-024", "employee_name": "岡田 美穂", "preferred_start": "17:00", "preferred_end": "21:00" }
+    { "id": "REQ-087", "date": "2026/05/26", "employee_id": "EMP-024", "employee_name": "岡田 美穂", "preferred_start": "17:00", "preferred_end": "21:00" },
+
+    { "id": "REQ-088", "date": "2026/05/28", "employee_id": "EMP-003", "employee_name": "佐藤 次郎",   "preferred_start": "09:00", "preferred_end": "14:00" },
+    { "id": "REQ-089", "date": "2026/05/28", "employee_id": "EMP-010", "employee_name": "伊藤 翔太",   "preferred_start": "09:00", "preferred_end": "14:00" },
+    { "id": "REQ-090", "date": "2026/05/28", "employee_id": "EMP-004", "employee_name": "山田 三郎",   "preferred_start": "08:00", "preferred_end": "16:00" },
+    { "id": "REQ-091", "date": "2026/05/28", "employee_id": "EMP-017", "employee_name": "斎藤 龍一",   "preferred_start": "08:00", "preferred_end": "16:00" },
+    { "id": "REQ-092", "date": "2026/05/28", "employee_id": "EMP-023", "employee_name": "村田 健",     "preferred_start": "10:00", "preferred_end": "15:00" },
+    { "id": "REQ-093", "date": "2026/05/28", "employee_id": "EMP-030", "employee_name": "工藤 さとみ", "preferred_start": "10:00", "preferred_end": "15:00" }
   ]
 }
