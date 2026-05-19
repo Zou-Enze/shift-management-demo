@@ -1,5 +1,4 @@
 import { Box, Grid, Typography } from '@mui/material';
-import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
 import { useCountUp } from '../../hooks/useCountUp';
 import type { ShiftSummary } from '../../types';
 
@@ -114,10 +113,6 @@ export default function BeforeAfterCards({ before, after }: Props) {
           調整前
         </Typography>
         <SummaryRow summary={before} muted />
-      </Box>
-
-      <Box sx={{ display: 'flex', justifyContent: 'center', py: 1 }}>
-        <ArrowDownwardIcon sx={{ color: 'text.disabled', fontSize: 28 }} />
       </Box>
 
       <Box>
