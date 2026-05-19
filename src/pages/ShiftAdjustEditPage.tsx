@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -65,6 +65,10 @@ export default function ShiftAdjustEditPage() {
 
   const [rows, setRows] = useState<AdjustRow[]>(state?.rows ?? []);
   const [dialog, setDialog] = useState<DialogState | null>(null);
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
 
   const subCategories = useMemo(() => {
     if (!dialog || !categories) return [];
