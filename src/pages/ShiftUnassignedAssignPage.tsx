@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -19,6 +19,7 @@ import {
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db/database';
+import type { ShiftRequest } from '../types';
 import type { AdjustRow } from './shiftAdjust/adjustTypes';
 
 interface LocationState {
@@ -61,10 +62,13 @@ export default function ShiftUnassignedAssignPage() {
   const allRows = state?.rows ?? [];
 
   const employees = useLiveQuery(() => db.employees.toArray(), []);
-  const shiftRequests = useLiveQuery(
-    () => (date ? db.shift_requests.where('date').equals(date).toArray() : Promise.resolve([])),
-    [date]
-  );
+  const [shiftRequests, setShiftRequests] = useState<ShiftRequest[]>([]);
+  useEffect(() => {
+    fetch('/data/shift_requests.json')
+      .then((r) => r.json())
+      .then((data: { shift_requests: ShiftRequest[] }) => setShiftRequests(data.shift_requests))
+      .catch(() => setShiftRequests([]));
+  }, []);
 
   const unassignedRows = useMemo(
     () =>
@@ -78,8 +82,13 @@ export default function ShiftUnassignedAssignPage() {
 
   const getAvailableEmployees = (skill: string, startTime: string, endTime: string) => {
     const availableEmpIds = new Set(
-      (shiftRequests ?? [])
-        .filter((req) => req.preferred_start < endTime && req.preferred_end > startTime)
+      shiftRequests
+        .filter(
+          (req) =>
+            req.date === date &&
+            req.preferred_start < endTime &&
+            req.preferred_end > startTime
+        )
         .map((req) => req.employee_id)
     );
     return (employees ?? []).filter(
