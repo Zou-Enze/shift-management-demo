@@ -4,9 +4,11 @@ import {
   Button,
   CircularProgress,
   Paper,
+  Stack,
   Typography,
 } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import FileDownloadIcon from '@mui/icons-material/FileDownload';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db/database';
 import TaskAxisTable from './shiftResult/TaskAxisTable';
@@ -106,6 +108,33 @@ export default function ShiftAdjustSummaryPage() {
         shiftRequests={shiftRequests}
         resultDate={date}
       />
+
+      <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} justifyContent="center" sx={{ mt: 6 }}>
+        <Button
+          variant="outlined"
+          startIcon={<ArrowBackIcon />}
+          onClick={() => navigate(-1)}
+          sx={{ px: 4, py: 1.5 }}
+        >
+          戻る
+        </Button>
+        <Button
+          variant="outlined"
+          startIcon={<FileDownloadIcon />}
+          onClick={() => alert('導出機能は実装予定です')}
+          sx={{ px: 4, py: 1.5 }}
+        >
+          Excelエクスポート
+        </Button>
+        <Button
+          variant="outlined"
+          startIcon={<FileDownloadIcon />}
+          onClick={() => alert('導出機能は実装予定です')}
+          sx={{ px: 4, py: 1.5 }}
+        >
+          PDFエクスポート
+        </Button>
+      </Stack>
     </Box>
   );
 }
