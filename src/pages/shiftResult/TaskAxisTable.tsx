@@ -78,6 +78,8 @@ function buildBars(blocks: EmpBlock[], taskStart: number, taskEnd: number): Span
   return bars;
 }
 
+const SKILL_ORDER = ['仕分け', '検品', '梱包'];
+
 const LABEL1_WIDTH = 100;
 const LABEL2_WIDTH = 80;
 const BD = '1px solid #E0E0E0';
@@ -139,10 +141,14 @@ export default function TaskAxisTable({ assignments, categories, shiftRequests, 
       const cat = categories.find((c) => c.id === largeId);
       const headerRow = currentRow++;
 
-      // 同名 カテゴリ小 を隣接させるためソート（同名内は元の順序を保つ安定ソート）
-      const sortedList = [...list].sort((a, b) =>
-        a.category_small.localeCompare(b.category_small, 'ja')
-      );
+      // カテゴリ小でグループ化し、グループ内はスキル順でソート
+      const sortedList = [...list].sort((a, b) => {
+        const catCompare = a.category_small.localeCompare(b.category_small, 'ja');
+        if (catCompare !== 0) return catCompare;
+        const aIdx = SKILL_ORDER.indexOf(a.task_name ?? '');
+        const bIdx = SKILL_ORDER.indexOf(b.task_name ?? '');
+        return (aIdx === -1 ? SKILL_ORDER.length : aIdx) - (bIdx === -1 ? SKILL_ORDER.length : bIdx);
+      });
 
       const assignmentLayouts = sortedList.map((a) => {
         const taskStart = Math.floor(parseHour(a.start_time));
