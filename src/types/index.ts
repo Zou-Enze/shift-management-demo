@@ -103,3 +103,9 @@ export interface TaskRow {
   skill_id: string;
   required_count: number;
 }
+
+export interface DailyAdjustSummary {
+  id: string;
+  date: string;
+  assignments: Assignment[];
+}

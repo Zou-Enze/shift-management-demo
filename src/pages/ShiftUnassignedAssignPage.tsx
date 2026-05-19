@@ -19,7 +19,7 @@ import {
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db/database';
-import type { ShiftRequest } from '../types';
+import type { Assignment, AssignedEmployee, Category, ShiftRequest, Skill } from '../types';
 import type { AdjustRow } from './shiftAdjust/adjustTypes';
 
 interface LocationState {
@@ -67,7 +67,8 @@ export default function ShiftUnassignedAssignPage() {
   const allRows = state?.rows ?? [];
 
   const employees = useLiveQuery(() => db.employees.toArray(), []);
-  const skills = useLiveQuery(() => db.skills.toArray(), []);
+  const skills = useLiveQuery(() => db.skills.toArray(), []) as Skill[] | undefined;
+  const categories = useLiveQuery(() => db.categories.toArray(), []) as Category[] | undefined;
   const [shiftRequests, setShiftRequests] = useState<ShiftRequest[]>([]);
   useEffect(() => {
     fetch('/data/shift_requests.json')
@@ -107,6 +108,66 @@ export default function ShiftUnassignedAssignPage() {
 
   const selectEmployee = (rowId: string, empId: string) => {
     setSelectedMap((prev) => ({ ...prev, [rowId]: empId }));
+  };
+
+  const handleConfirm = async () => {
+    if (!categories || !skills || !employees) return;
+
+    const unassignedRowIds = new Set(unassignedRows.map((r) => r.id));
+
+    const assignments: Assignment[] = allRows.map((row) => {
+      const cat = categories.find((c) => c.name === row.categoryLarge);
+      const subCat = cat?.sub_categories.find((sc) => sc.name === row.categorySmall);
+      const skillObj = skills.find((s) => s.name === row.skill);
+
+      const absentIds = new Set(row.absentEmployees.map((e) => e.id));
+      const finalEmployees: AssignedEmployee[] = row.assignedEmployees
+        .filter((e) => !absentIds.has(e.id))
+        .map((e) => ({ employee_id: e.id, employee_name: e.name }));
+
+      if (unassignedRowIds.has(row.id)) {
+        const startTime = extractTime(row.startDateTime);
+        const endTime = extractTime(row.endDateTime);
+        const availableEmps = getAvailableEmployees(row.skill, startTime, endTime);
+        const selectedEmpId = selectedMap[row.id];
+
+        if (selectedEmpId) {
+          const emp = employees.find((e) => e.id === selectedEmpId);
+          if (emp) finalEmployees.push({ employee_id: emp.id, employee_name: emp.name });
+        } else if (availableEmps.length === 1) {
+          finalEmployees.push({ employee_id: availableEmps[0].id, employee_name: availableEmps[0].name });
+        }
+      }
+
+      const startTime = extractTime(row.startDateTime);
+      const endTime = extractTime(row.endDateTime);
+
+      return {
+        task_id: row.id,
+        category_large_id: cat?.id ?? row.categoryLarge,
+        category_large: row.categoryLarge,
+        category_small_id: subCat?.id ?? row.categorySmall,
+        category_small: row.categorySmall,
+        start_time: startTime,
+        end_time: endTime,
+        task_name: row.skill,
+        skill_id: skillObj?.id ?? row.skill,
+        skill: row.skill,
+        required_count: row.requiredCount,
+        assigned_count: finalEmployees.length,
+        shortage: Math.max(0, row.requiredCount - finalEmployees.length),
+        assigned_employees: finalEmployees,
+      };
+    });
+
+    const summary = {
+      id: `das-${date}-${Date.now()}`,
+      date,
+      assignments,
+    };
+    await db.daily_adjust_summaries.put(summary);
+
+    navigate('/shift/adjust/summary', { state: { date } });
   };
 
   if (!state?.rows) {
@@ -283,7 +344,7 @@ export default function ShiftUnassignedAssignPage() {
       <Stack direction="row" justifyContent="flex-end" sx={{ mt: 3 }}>
         <Button
           variant="contained"
-          onClick={() => navigate(-1)}
+          onClick={handleConfirm}
           sx={{
             bgcolor: 'primary.main',
             color: '#fff',
@@ -294,7 +355,7 @@ export default function ShiftUnassignedAssignPage() {
             '&:hover': { bgcolor: '#3b3377' },
           }}
         >
-          確定
+          シフト管理表再編
         </Button>
       </Stack>
     </Box>
