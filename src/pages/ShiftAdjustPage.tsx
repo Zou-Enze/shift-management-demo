@@ -141,7 +141,7 @@ export default function ShiftAdjustPage() {
               onClick={handleGoToEdit}
               sx={{ bgcolor: 'primary.main', color: '#fff', fontWeight: 700, px: 4, py: 1.5 }}
             >
-              変更画面へ
+              変更箇所入力
             </Button>
           </Box>
         </>
