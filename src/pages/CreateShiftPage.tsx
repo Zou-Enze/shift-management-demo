@@ -414,17 +414,66 @@ export default function CreateShiftPage() {
     const categoryMap = new Map(allCategories.map((c) => [c.id, c]));
     const skillMap = new Map(allSkills.map((s) => [s.id, s]));
     const employeeMap = new Map(allEmployees.map((e) => [e.id, e]));
+    const categoryOrder = new Map(allCategories.map((c, index) => [c.id, index]));
+    const smallCategoryOrder = new Map<string, number>();
+    allCategories.forEach((category) => {
+      category.sub_categories.forEach((subCategory, index) => {
+        smallCategoryOrder.set(subCategory.id, index);
+      });
+    });
+
+    const sortedTaskRows = [...taskRows].sort((a, b) => {
+      const dateCompare = (a.task_date ?? '').localeCompare(b.task_date ?? '');
+      if (dateCompare !== 0) return dateCompare;
+
+      const categoryCompare =
+        (categoryOrder.get(a.category_large_id) ?? Number.MAX_SAFE_INTEGER) -
+        (categoryOrder.get(b.category_large_id) ?? Number.MAX_SAFE_INTEGER);
+      if (categoryCompare !== 0) return categoryCompare;
+
+      const smallCategoryCompare =
+        (smallCategoryOrder.get(a.category_small_id) ?? Number.MAX_SAFE_INTEGER) -
+        (smallCategoryOrder.get(b.category_small_id) ?? Number.MAX_SAFE_INTEGER);
+      if (smallCategoryCompare !== 0) return smallCategoryCompare;
+
+      const startCompare = parseH(a.start_time) - parseH(b.start_time);
+      if (startCompare !== 0) return startCompare;
+
+      const endCompare = parseH(a.end_time) - parseH(b.end_time);
+      if (endCompare !== 0) return endCompare;
+
+      const skillCompare = a.skill_id.localeCompare(b.skill_id);
+      if (skillCompare !== 0) return skillCompare;
+
+      return a.id.localeCompare(b.id);
+    });
+
+    const sortedRequests = [...allRequests].sort((a, b) => {
+      const dateCompare = a.date.localeCompare(b.date);
+      if (dateCompare !== 0) return dateCompare;
+
+      const startCompare = parseH(a.preferred_start) - parseH(b.preferred_start);
+      if (startCompare !== 0) return startCompare;
+
+      const endCompare = parseH(a.preferred_end) - parseH(b.preferred_end);
+      if (endCompare !== 0) return endCompare;
+
+      const employeeCompare = a.employee_id.localeCompare(b.employee_id);
+      if (employeeCompare !== 0) return employeeCompare;
+
+      return a.id.localeCompare(b.id);
+    });
 
     // 従業員ごとの予約済み時間帯（重複配置を防ぐ）
     const bookings = new Map<string, Array<{ start: number; end: number }>>();
 
-    const assignments: Assignment[] = taskRows.map((row) => {
+    const assignments: Assignment[] = sortedTaskRows.map((row) => {
       const taskStart = parseH(row.start_time);
       const taskEnd = parseH(row.end_time);
       const taskDate = (row.task_date ?? '').replace(/-/g, '/');
 
       // 日付・時間帯が重複し、スキルが一致するシフト希望を抽出
-      const eligible = allRequests.filter((req) => {
+      const eligible = sortedRequests.filter((req) => {
         if (req.date.replace(/-/g, '/') !== taskDate) return false;
         const reqStart = parseH(req.preferred_start);
         const reqEnd = parseH(req.preferred_end);
@@ -475,7 +524,7 @@ export default function CreateShiftPage() {
     const totalAssigned = assignments.reduce((s, a) => s + a.assigned_count, 0);
     const totalHours = assignments.reduce((s, a) => s + (parseH(a.end_time) - parseH(a.start_time)) * a.required_count, 0);
     const shortageHours = assignments.reduce((s, a) => s + (parseH(a.end_time) - parseH(a.start_time)) * a.shortage, 0);
-    const targetDate = taskRows[0]?.task_date ?? new Date().toISOString().slice(0, 10).replace(/-/g, '/');
+    const targetDate = sortedTaskRows[0]?.task_date ?? new Date().toISOString().slice(0, 10).replace(/-/g, '/');
 
     await db.shift_results.clear();
     await db.shift_results.add({

@@ -9,7 +9,7 @@ import type {
   AssignmentRule,
 } from '../types';
 
-const DEMO_DATA_VERSION = '2026-05-26-shift-demo-v4';
+const DEMO_DATA_VERSION = '2026-05-26-shift-demo-v5';
 const DEMO_DATA_VERSION_KEY = 'shift-management-demo:data-version';
 
 export async function seedIfEmpty(): Promise<void> {
@@ -57,10 +57,13 @@ export async function seedIfEmpty(): Promise<void> {
 async function syncDemoDataIfNeeded(): Promise<void> {
   if (localStorage.getItem(DEMO_DATA_VERSION_KEY) === DEMO_DATA_VERSION) return;
 
-  const [workloads, reqs] = await Promise.all([
+  const [workloads, reqs, result] = await Promise.all([
     fetch('/data/workloads.json').then((r) => r.json()) as Promise<{ workloads: Mode[] }>,
     fetch('/data/shift_requests.json').then((r) => r.json()) as Promise<{
       shift_requests: ShiftRequest[];
+    }>,
+    fetch('/data/shift_result.json').then((r) => r.json()) as Promise<{
+      shift_result: ShiftResult;
     }>,
   ]);
 
@@ -72,6 +75,7 @@ async function syncDemoDataIfNeeded(): Promise<void> {
 
     await db.modes.bulkAdd(workloads.workloads);
     await db.shift_requests.bulkAdd(reqs.shift_requests);
+    await db.shift_results.add(result.shift_result);
   });
 
   localStorage.setItem(DEMO_DATA_VERSION_KEY, DEMO_DATA_VERSION);
