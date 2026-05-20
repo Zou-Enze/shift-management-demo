@@ -231,6 +231,22 @@
       "employee_name": "橋本 瑠璃",
       "preferred_start": "16:00",
       "preferred_end": "18:00"
+    },
+    {
+      "id": "REQ-20260528-001",
+      "date": "2026/05/28",
+      "employee_id": "EMP-003",
+      "employee_name": "佐藤 次郎",
+      "preferred_start": "12:00",
+      "preferred_end": "14:00"
+    },
+    {
+      "id": "REQ-20260528-002",
+      "date": "2026/05/28",
+      "employee_id": "EMP-004",
+      "employee_name": "山田 三郎",
+      "preferred_start": "12:00",
+      "preferred_end": "14:00"
     }
   ]
 }
