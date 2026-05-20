@@ -348,7 +348,7 @@ export default function AdjustTable({ rows, onRowChange }: Props) {
                           </Box>
                         </Box>
 
-                        {skillGroup.tasks.map(({ task, taskStart, taskEnd, rowCount, startRow, packedRows }) => (
+                        {skillGroup.tasks.map(({ task, taskStart, taskEnd, startRow, packedRows }) => (
                           <Fragment key={task.id}>
                             {/* タイムライン行 */}
                             {packedRows.map((rowBlocks, ri) => (

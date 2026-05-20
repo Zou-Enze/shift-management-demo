@@ -39,7 +39,7 @@ import BoltIcon from '@mui/icons-material/Bolt';
 import BookmarkAddIcon from '@mui/icons-material/BookmarkAdd';
 import { db } from '../db/database';
 import { getCategorySmallColor } from '../constants/categoryColors';
-import { isoDateToSlash, slashDateToIso, todayIsoDate } from '../utils/taskDateTime';
+import { isoDateToSlash, todayIsoDate } from '../utils/taskDateTime';
 import type { Assignment, AssignedEmployee, Category, Skill, TaskRow, Mode } from '../types';
 import ConfirmDialog from '../components/ConfirmDialog';
 
@@ -556,7 +556,10 @@ export default function CreateShiftPage() {
               type="date"
               size="small"
               value={taskTargetDateIso}
-              onChange={(e) => setTaskTargetDateIso(e.target.value)}
+              onChange={(e) => {
+                setTaskTargetDateIso(e.target.value);
+                setReflected(false);
+              }}
               InputLabelProps={{ shrink: true }}
               sx={{ mb: 3, maxWidth: 220 }}
             />
@@ -861,16 +864,18 @@ export default function CreateShiftPage() {
                 variant="contained"
                 startIcon={<CheckCircleIcon />}
                 onClick={handleReflect}
+                disabled={reflected}
                 sx={{
                   bgcolor: '#F2E300',
                   color: '#6B6400',
                   '&:hover': { bgcolor: '#D7CA00' },
+                  '&.Mui-disabled': { bgcolor: '#F0EDED', color: '#9C9A9F' },
                   px: 4,
                   fontWeight: 700,
                   fontSize: '16px',
                 }}
               >
-                反映
+                {reflected ? '反映済み' : '反映'}
               </Button>
             </Box>
           </Box>
@@ -931,6 +936,7 @@ export default function CreateShiftPage() {
         value={newWorkloadName}
         onChange={setNewWorkloadName}
         onSave={handleSaveAndReflect}
+        onSkip={handleSkipAndReflect}
         onCancel={() => setSaveDialogOpen(false)}
       />
 
@@ -1132,10 +1138,11 @@ interface SaveWorkloadDialogProps {
   value: string;
   onChange: (v: string) => void;
   onSave: () => void;
+  onSkip: () => void;
   onCancel: () => void;
 }
 
-function SaveWorkloadDialog({ open, value, onChange, onSave, onCancel }: SaveWorkloadDialogProps) {
+function SaveWorkloadDialog({ open, value, onChange, onSave, onSkip, onCancel }: SaveWorkloadDialogProps) {
   return (
     <Dialog open={open} onClose={onCancel} maxWidth="xs" fullWidth>
       <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -1173,6 +1180,9 @@ function SaveWorkloadDialog({ open, value, onChange, onSave, onCancel }: SaveWor
         </Button>
         <Button fullWidth onClick={onCancel} sx={{ color: 'text.secondary' }}>
           キャンセル
+        </Button>
+        <Button fullWidth onClick={onSkip} sx={{ color: 'text.secondary' }}>
+          保存せず反映
         </Button>
       </DialogActions>
     </Dialog>

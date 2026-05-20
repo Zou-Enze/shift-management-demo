@@ -198,7 +198,7 @@ export default function ShiftRequestPage() {
                         value={toInputDate(getField(req, 'date'))}
                         onChange={(e) => setEdit(req.id, { date: toStorageDate(e.target.value) })}
                         sx={{ width: 155 }}
-                        slotProps={{ htmlInput: { style: { cursor: 'pointer' } } }}
+                        inputProps={{ style: { cursor: 'pointer' } }}
                       />
                     </TableCell>
                     <TableCell>
