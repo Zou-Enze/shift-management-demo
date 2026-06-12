@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { Fragment, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
 import {
@@ -26,6 +26,7 @@ import {
   List,
   ListItemButton,
   ListItemText,
+  Tooltip,
 } from '@mui/material';
 import AssignmentIcon from '@mui/icons-material/Assignment';
 import AddBoxIcon from '@mui/icons-material/AddBoxOutlined';
@@ -882,6 +883,8 @@ export default function CreateShiftPage() {
         </Paper>
       </Box>
 
+      <TaskTimeline taskConfig={taskConfig} categories={categories ?? []} />
+
       <Fab
         color="primary"
         variant="extended"
@@ -1186,5 +1189,224 @@ function SaveWorkloadDialog({ open, value, onChange, onSave, onSkip, onCancel }:
         </Button>
       </DialogActions>
     </Dialog>
+  );
+}
+
+const TIMELINE_RANGE_START = 0;
+const TIMELINE_RANGE_TOTAL = 24;
+const TIMELINE_NAME_COL_WIDTH = 120;
+const TIMELINE_BORDER = '1px solid #E0E0E0';
+const TIMELINE_HOUR_INDEXES = Array.from({ length: TIMELINE_RANGE_TOTAL }, (_, i) => i);
+
+function parseHourTimeline(time: string): number {
+  const [hh, mm] = time.split(':').map(Number);
+  return hh + (Number.isFinite(mm) ? mm / 60 : 0);
+}
+
+interface TimelineRow {
+  smallId: string;
+  smallName: string;
+  color: string;
+  bars: Array<{ id: string; taskName: string; startH: number; endH: number }>;
+}
+
+interface TaskTimelineProps {
+  taskConfig: TaskConfig;
+  categories: Category[];
+}
+
+function TaskTimeline({ taskConfig, categories }: TaskTimelineProps) {
+  const rows = useMemo<TimelineRow[]>(() => {
+    const result: TimelineRow[] = [];
+    categories.forEach((cat) => {
+      const smalls = taskConfig[cat.id] ?? [];
+      smalls.forEach((small) => {
+        const bars = small.skills.map((sk) => ({
+          id: sk.id,
+          taskName: sk.task_name,
+          startH: parseHourTimeline(sk.start_time),
+          endH: parseHourTimeline(sk.end_time),
+        }));
+        if (bars.length > 0) {
+          result.push({
+            smallId: small.category_small_id,
+            smallName: small.category_small_name,
+            color: getCategorySmallColor(small.category_small_id),
+            bars,
+          });
+        }
+      });
+    });
+    return result;
+  }, [taskConfig, categories]);
+
+  if (rows.length === 0) return null;
+
+  const gridTemplateColumns = `minmax(${TIMELINE_NAME_COL_WIDTH}px, ${TIMELINE_NAME_COL_WIDTH}px) repeat(24, minmax(28px, 1fr))`;
+
+  return (
+    <Box sx={{ mb: 6 }}>
+      <Stack direction="row" alignItems="center" spacing={1.5} sx={{ mb: 3 }}>
+        <Typography variant="h3">時間軸一覧</Typography>
+      </Stack>
+      <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1, overflow: 'hidden' }}>
+        <Box sx={{ overflowX: 'auto' }}>
+          <Box
+            sx={{
+              display: 'grid',
+              gridTemplateColumns,
+              minWidth: TIMELINE_NAME_COL_WIDTH + TIMELINE_RANGE_TOTAL * 36,
+            }}
+          >
+            {/* ヘッダー行 */}
+            <Box
+              sx={{
+                gridColumn: 1,
+                gridRow: 1,
+                p: 1.5,
+                fontWeight: 600,
+                fontSize: '13px',
+                bgcolor: '#F6F3F2',
+                borderBottom: TIMELINE_BORDER,
+                borderRight: TIMELINE_BORDER,
+                display: 'flex',
+                alignItems: 'center',
+                boxSizing: 'border-box',
+              }}
+            >
+              作業分類 / 時間
+            </Box>
+            {TIMELINE_HOUR_INDEXES.map((h, i) => (
+              <Box
+                key={h}
+                sx={{
+                  gridColumn: i + 2,
+                  gridRow: 1,
+                  py: 1.5,
+                  textAlign: 'center',
+                  fontSize: '12px',
+                  fontWeight: 500,
+                  bgcolor: '#F6F3F2',
+                  borderBottom: TIMELINE_BORDER,
+                  borderRight: i === TIMELINE_HOUR_INDEXES.length - 1 ? 'none' : TIMELINE_BORDER,
+                  boxSizing: 'border-box',
+                  minWidth: 0,
+                }}
+              >
+                {h}
+              </Box>
+            ))}
+
+            {/* データ行 */}
+            {rows.map((row, ri) => (
+              <Fragment key={row.smallId}>
+                <Box
+                  sx={{
+                    gridColumn: 1,
+                    gridRow: ri + 2,
+                    px: 1.5,
+                    py: 1,
+                    borderBottom: TIMELINE_BORDER,
+                    borderRight: TIMELINE_BORDER,
+                    display: 'flex',
+                    alignItems: 'center',
+                    boxSizing: 'border-box',
+                  }}
+                >
+                  <Stack direction="row" alignItems="center" spacing={1}>
+                    <Box
+                      sx={{
+                        width: 10,
+                        height: 10,
+                        borderRadius: '2px',
+                        bgcolor: row.color,
+                        flexShrink: 0,
+                      }}
+                    />
+                    <Typography sx={{ fontSize: '13px', fontWeight: 600, lineHeight: 1.2 }}>
+                      {row.smallName}
+                    </Typography>
+                  </Stack>
+                </Box>
+                <Box
+                  sx={{
+                    gridColumn: '2 / -1',
+                    gridRow: ri + 2,
+                    position: 'relative',
+                    minHeight: 48,
+                    bgcolor: '#FFFFFF',
+                    borderBottom: TIMELINE_BORDER,
+                    boxSizing: 'border-box',
+                    minWidth: 0,
+                  }}
+                >
+                  {/* グリッド縦線 */}
+                  <Box
+                    sx={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(24, 1fr)',
+                      position: 'absolute',
+                      inset: 0,
+                      pointerEvents: 'none',
+                    }}
+                  >
+                    {TIMELINE_HOUR_INDEXES.map((_, i) => (
+                      <Box
+                        key={i}
+                        sx={{
+                          borderRight: i < TIMELINE_HOUR_INDEXES.length - 1 ? TIMELINE_BORDER : 'none',
+                          boxSizing: 'border-box',
+                        }}
+                      />
+                    ))}
+                  </Box>
+                  {/* 時間帯バー */}
+                  {row.bars.map((bar) => {
+                    const clampedStart = Math.max(TIMELINE_RANGE_START, Math.min(TIMELINE_RANGE_TOTAL, bar.startH));
+                    const clampedEnd = Math.max(TIMELINE_RANGE_START, Math.min(TIMELINE_RANGE_TOTAL, bar.endH));
+                    if (clampedEnd <= clampedStart) return null;
+                    const left = `${((clampedStart - TIMELINE_RANGE_START) / TIMELINE_RANGE_TOTAL) * 100}%`;
+                    const width = `${((clampedEnd - clampedStart) / TIMELINE_RANGE_TOTAL) * 100}%`;
+                    return (
+                      <Tooltip
+                        key={bar.id}
+                        title={`${bar.taskName}　${Math.floor(bar.startH)}:${String(Math.round((bar.startH % 1) * 60)).padStart(2, '0')}〜${Math.floor(bar.endH)}:${String(Math.round((bar.endH % 1) * 60)).padStart(2, '0')}`}
+                        arrow
+                      >
+                        <Box
+                          sx={{
+                            position: 'absolute',
+                            top: 6,
+                            bottom: 6,
+                            left,
+                            width,
+                            bgcolor: row.color,
+                            color: '#FFFFFF',
+                            borderRadius: '4px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: '11px',
+                            fontWeight: 600,
+                            px: 0.5,
+                            overflow: 'hidden',
+                            whiteSpace: 'nowrap',
+                            cursor: 'default',
+                            opacity: 0.9,
+                            '&:hover': { opacity: 1 },
+                          }}
+                        >
+                          {bar.taskName}
+                        </Box>
+                      </Tooltip>
+                    );
+                  })}
+                </Box>
+              </Fragment>
+            ))}
+          </Box>
+        </Box>
+      </Paper>
+    </Box>
   );
 }
