@@ -82,7 +82,7 @@ export default function CreateShiftPage() {
 
   const [largeDialogOpen, setLargeDialogOpen] = useState(false);
   const [smallDialogForLarge, setSmallDialogForLarge] = useState<string | null>(null);
-  const [skillDialogState, setSkillDialogState] = useState<{ largeId: string; smallId: string } | null>(null);
+  const [skillDialogState, setSkillDialogState] = useState<SkillDialogState | null>(null);
   const [editingSkillId, setEditingSkillId] = useState<string | null>(null);
   const [editingCount, setEditingCount] = useState<number>(1);
 
@@ -292,6 +292,19 @@ export default function CreateShiftPage() {
       [largeId]: (prev[largeId] ?? []).map((s) =>
         s.category_small_id === smallId
           ? { ...s, skills: [...s.skills, { ...cfg, id: uid('SK') }] }
+          : s
+      ),
+    }));
+    setSkillDialogState(null);
+    setReflected(false);
+  };
+
+  const updateSkillConfig = (largeId: string, smallId: string, id: string, cfg: Omit<SkillConfig, 'id'>) => {
+    setTaskConfig((prev) => ({
+      ...prev,
+      [largeId]: (prev[largeId] ?? []).map((s) =>
+        s.category_small_id === smallId
+          ? { ...s, skills: s.skills.map((sk) => sk.id === id ? { ...cfg, id } : sk) }
           : s
       ),
     }));
@@ -883,7 +896,16 @@ export default function CreateShiftPage() {
         </Paper>
       </Box>
 
-      <TaskTimeline taskConfig={taskConfig} categories={categories ?? []} />
+      <TaskTimeline
+        taskConfig={taskConfig}
+        categories={categories ?? []}
+        onBarClick={(largeId, smallId, barId) => {
+          const smalls = taskConfig[largeId] ?? [];
+          const small = smalls.find((s) => s.category_small_id === smallId);
+          const editing = small?.skills.find((sk) => sk.id === barId);
+          if (editing) setSkillDialogState({ largeId, smallId, editing });
+        }}
+      />
 
       <Fab
         color="primary"
@@ -931,7 +953,8 @@ export default function CreateShiftPage() {
         state={skillDialogState}
         skills={skills ?? []}
         onClose={() => setSkillDialogState(null)}
-        onSubmit={(largeId, smallId, cfg) => addSkillConfig(largeId, smallId, cfg)}
+        onSubmit={addSkillConfig}
+        onUpdate={updateSkillConfig}
       />
 
       <SaveWorkloadDialog
@@ -1039,21 +1062,36 @@ function SmallCategoryDialog({ largeId, categories, existing, onClose, onSelect 
   );
 }
 
+interface SkillDialogState {
+  largeId: string;
+  smallId: string;
+  editing?: SkillConfig;
+}
+
 interface SkillDialogProps {
-  state: { largeId: string; smallId: string } | null;
+  state: SkillDialogState | null;
   skills: Skill[];
   onClose: () => void;
   onSubmit: (largeId: string, smallId: string, cfg: Omit<SkillConfig, 'id'>) => void;
+  onUpdate: (largeId: string, smallId: string, id: string, cfg: Omit<SkillConfig, 'id'>) => void;
 }
 
-function SkillDialog({ state, skills, onClose, onSubmit }: SkillDialogProps) {
+function SkillDialog({ state, skills, onClose, onSubmit, onUpdate }: SkillDialogProps) {
   const [skillId, setSkillId] = useState<string>('');
   const [startTime, setStartTime] = useState('09:00');
   const [endTime, setEndTime] = useState('17:00');
   const [count, setCount] = useState(1);
 
+  const isEdit = !!state?.editing;
+
   useEffect(() => {
-    if (state) {
+    if (!state) return;
+    if (state.editing) {
+      setSkillId(state.editing.skill_id);
+      setStartTime(state.editing.start_time);
+      setEndTime(state.editing.end_time);
+      setCount(state.editing.required_count);
+    } else {
       setSkillId(skills[0]?.id ?? '');
       setStartTime('09:00');
       setEndTime('17:00');
@@ -1063,9 +1101,25 @@ function SkillDialog({ state, skills, onClose, onSubmit }: SkillDialogProps) {
 
   if (!state) return null;
 
+  const handleConfirm = () => {
+    const skillLabel = skills.find((s) => s.id === skillId)?.name ?? '';
+    const cfg: Omit<SkillConfig, 'id'> = {
+      skill_id: skillId,
+      start_time: startTime,
+      end_time: endTime,
+      task_name: skillLabel,
+      required_count: count,
+    };
+    if (isEdit && state.editing) {
+      onUpdate(state.largeId, state.smallId, state.editing.id, cfg);
+    } else {
+      onSubmit(state.largeId, state.smallId, cfg);
+    }
+  };
+
   return (
     <Dialog open onClose={onClose} maxWidth="xs" fullWidth>
-      <DialogTitle>シフト追加</DialogTitle>
+      <DialogTitle>{isEdit ? 'シフト編集' : 'シフト追加'}</DialogTitle>
       <DialogContent dividers>
         <Stack spacing={2.5} sx={{ pt: 1 }}>
           <Box>
@@ -1115,21 +1169,8 @@ function SkillDialog({ state, skills, onClose, onSubmit }: SkillDialogProps) {
       </DialogContent>
       <DialogActions>
         <Button onClick={onClose}>キャンセル</Button>
-        <Button
-          variant="contained"
-          disabled={!skillId}
-          onClick={() => {
-            const skillLabel = skills.find((s) => s.id === skillId)?.name ?? '';
-            onSubmit(state.largeId, state.smallId, {
-              skill_id: skillId,
-              start_time: startTime,
-              end_time: endTime,
-              task_name: skillLabel,
-              required_count: count,
-            });
-          }}
-        >
-          追加
+        <Button variant="contained" disabled={!skillId} onClick={handleConfirm}>
+          {isEdit ? '保存' : '追加'}
         </Button>
       </DialogActions>
     </Dialog>
@@ -1192,36 +1233,67 @@ function SaveWorkloadDialog({ open, value, onChange, onSave, onSkip, onCancel }:
   );
 }
 
-const TIMELINE_RANGE_START = 0;
 const TIMELINE_RANGE_TOTAL = 24;
 const TIMELINE_NAME_COL_WIDTH = 120;
 const TIMELINE_BORDER = '1px solid #E0E0E0';
 const TIMELINE_HOUR_INDEXES = Array.from({ length: TIMELINE_RANGE_TOTAL }, (_, i) => i);
+const TIMELINE_SUBROW_HEIGHT = 36;
 
 function parseHourTimeline(time: string): number {
   const [hh, mm] = time.split(':').map(Number);
   return hh + (Number.isFinite(mm) ? mm / 60 : 0);
 }
 
+function fmtH(h: number): string {
+  return `${Math.floor(h)}:${String(Math.round((h % 1) * 60)).padStart(2, '0')}`;
+}
+
+interface TimelineBarItem {
+  id: string;
+  taskName: string;
+  startH: number;
+  endH: number;
+}
+
 interface TimelineRow {
+  largeId: string;
   smallId: string;
   smallName: string;
   color: string;
-  bars: Array<{ id: string; taskName: string; startH: number; endH: number }>;
+  bars: TimelineBarItem[];
+}
+
+function packTimelineBars(bars: TimelineBarItem[]): TimelineBarItem[][] {
+  const subRows: TimelineBarItem[][] = [];
+  const sorted = [...bars].sort((a, b) => a.startH - b.startH);
+  for (const bar of sorted) {
+    let placed = false;
+    for (const subRow of subRows) {
+      const last = subRow[subRow.length - 1];
+      if (!last || last.endH <= bar.startH) {
+        subRow.push(bar);
+        placed = true;
+        break;
+      }
+    }
+    if (!placed) subRows.push([bar]);
+  }
+  return subRows;
 }
 
 interface TaskTimelineProps {
   taskConfig: TaskConfig;
   categories: Category[];
+  onBarClick?: (largeId: string, smallId: string, barId: string) => void;
 }
 
-function TaskTimeline({ taskConfig, categories }: TaskTimelineProps) {
+function TaskTimeline({ taskConfig, categories, onBarClick }: TaskTimelineProps) {
   const rows = useMemo<TimelineRow[]>(() => {
     const result: TimelineRow[] = [];
     categories.forEach((cat) => {
       const smalls = taskConfig[cat.id] ?? [];
       smalls.forEach((small) => {
-        const bars = small.skills.map((sk) => ({
+        const bars: TimelineBarItem[] = small.skills.map((sk) => ({
           id: sk.id,
           taskName: sk.task_name,
           startH: parseHourTimeline(sk.start_time),
@@ -1229,6 +1301,7 @@ function TaskTimeline({ taskConfig, categories }: TaskTimelineProps) {
         }));
         if (bars.length > 0) {
           result.push({
+            largeId: cat.id,
             smallId: small.category_small_id,
             smallName: small.category_small_name,
             color: getCategorySmallColor(small.category_small_id),
@@ -1251,27 +1324,14 @@ function TaskTimeline({ taskConfig, categories }: TaskTimelineProps) {
       </Stack>
       <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1, overflow: 'hidden' }}>
         <Box sx={{ overflowX: 'auto' }}>
-          <Box
-            sx={{
-              display: 'grid',
-              gridTemplateColumns,
-              minWidth: TIMELINE_NAME_COL_WIDTH + TIMELINE_RANGE_TOTAL * 36,
-            }}
-          >
+          <Box sx={{ display: 'grid', gridTemplateColumns, minWidth: TIMELINE_NAME_COL_WIDTH + TIMELINE_RANGE_TOTAL * 36 }}>
             {/* ヘッダー行 */}
             <Box
               sx={{
-                gridColumn: 1,
-                gridRow: 1,
-                p: 1.5,
-                fontWeight: 600,
-                fontSize: '13px',
-                bgcolor: '#F6F3F2',
-                borderBottom: TIMELINE_BORDER,
-                borderRight: TIMELINE_BORDER,
-                display: 'flex',
-                alignItems: 'center',
-                boxSizing: 'border-box',
+                gridColumn: 1, gridRow: 1, p: 1.5,
+                fontWeight: 600, fontSize: '13px', bgcolor: '#F6F3F2',
+                borderBottom: TIMELINE_BORDER, borderRight: TIMELINE_BORDER,
+                display: 'flex', alignItems: 'center', boxSizing: 'border-box',
               }}
             >
               作業分類 / 時間
@@ -1280,130 +1340,117 @@ function TaskTimeline({ taskConfig, categories }: TaskTimelineProps) {
               <Box
                 key={h}
                 sx={{
-                  gridColumn: i + 2,
-                  gridRow: 1,
-                  py: 1.5,
-                  textAlign: 'center',
-                  fontSize: '12px',
-                  fontWeight: 500,
-                  bgcolor: '#F6F3F2',
-                  borderBottom: TIMELINE_BORDER,
+                  gridColumn: i + 2, gridRow: 1,
+                  py: 1.5, textAlign: 'center', fontSize: '12px', fontWeight: 500,
+                  bgcolor: '#F6F3F2', borderBottom: TIMELINE_BORDER,
                   borderRight: i === TIMELINE_HOUR_INDEXES.length - 1 ? 'none' : TIMELINE_BORDER,
-                  boxSizing: 'border-box',
-                  minWidth: 0,
+                  boxSizing: 'border-box', minWidth: 0,
                 }}
               >
                 {h}
               </Box>
             ))}
 
-            {/* データ行 */}
-            {rows.map((row, ri) => (
-              <Fragment key={row.smallId}>
-                <Box
-                  sx={{
-                    gridColumn: 1,
-                    gridRow: ri + 2,
-                    px: 1.5,
-                    py: 1,
-                    borderBottom: TIMELINE_BORDER,
-                    borderRight: TIMELINE_BORDER,
-                    display: 'flex',
-                    alignItems: 'center',
-                    boxSizing: 'border-box',
-                  }}
-                >
-                  <Stack direction="row" alignItems="center" spacing={1}>
-                    <Box
-                      sx={{
-                        width: 10,
-                        height: 10,
-                        borderRadius: '2px',
-                        bgcolor: row.color,
-                        flexShrink: 0,
-                      }}
-                    />
-                    <Typography sx={{ fontSize: '13px', fontWeight: 600, lineHeight: 1.2 }}>
-                      {row.smallName}
-                    </Typography>
-                  </Stack>
-                </Box>
-                <Box
-                  sx={{
-                    gridColumn: '2 / -1',
-                    gridRow: ri + 2,
-                    position: 'relative',
-                    minHeight: 48,
-                    bgcolor: '#FFFFFF',
-                    borderBottom: TIMELINE_BORDER,
-                    boxSizing: 'border-box',
-                    minWidth: 0,
-                  }}
-                >
-                  {/* グリッド縦線 */}
+            {/* データ行：小カテゴリごと */}
+            {rows.map((row, ri) => {
+              const subRows = packTimelineBars(row.bars);
+              const rowHeight = Math.max(TIMELINE_SUBROW_HEIGHT, subRows.length * TIMELINE_SUBROW_HEIGHT);
+
+              return (
+                <Fragment key={row.smallId}>
+                  {/* ラベル列 */}
                   <Box
                     sx={{
-                      display: 'grid',
-                      gridTemplateColumns: 'repeat(24, 1fr)',
-                      position: 'absolute',
-                      inset: 0,
-                      pointerEvents: 'none',
+                      gridColumn: 1, gridRow: ri + 2,
+                      px: 1.5, py: 1,
+                      borderBottom: TIMELINE_BORDER, borderRight: TIMELINE_BORDER,
+                      display: 'flex', alignItems: 'center', boxSizing: 'border-box',
+                      height: rowHeight,
                     }}
                   >
-                    {TIMELINE_HOUR_INDEXES.map((_, i) => (
-                      <Box
-                        key={i}
-                        sx={{
-                          borderRight: i < TIMELINE_HOUR_INDEXES.length - 1 ? TIMELINE_BORDER : 'none',
-                          boxSizing: 'border-box',
-                        }}
-                      />
-                    ))}
+                    <Stack direction="row" alignItems="center" spacing={1}>
+                      <Box sx={{ width: 10, height: 10, borderRadius: '2px', bgcolor: row.color, flexShrink: 0 }} />
+                      <Typography sx={{ fontSize: '13px', fontWeight: 600, lineHeight: 1.2 }}>
+                        {row.smallName}
+                      </Typography>
+                    </Stack>
                   </Box>
-                  {/* 時間帯バー */}
-                  {row.bars.map((bar) => {
-                    const clampedStart = Math.max(TIMELINE_RANGE_START, Math.min(TIMELINE_RANGE_TOTAL, bar.startH));
-                    const clampedEnd = Math.max(TIMELINE_RANGE_START, Math.min(TIMELINE_RANGE_TOTAL, bar.endH));
-                    if (clampedEnd <= clampedStart) return null;
-                    const left = `${((clampedStart - TIMELINE_RANGE_START) / TIMELINE_RANGE_TOTAL) * 100}%`;
-                    const width = `${((clampedEnd - clampedStart) / TIMELINE_RANGE_TOTAL) * 100}%`;
-                    return (
-                      <Tooltip
-                        key={bar.id}
-                        title={`${bar.taskName}　${Math.floor(bar.startH)}:${String(Math.round((bar.startH % 1) * 60)).padStart(2, '0')}〜${Math.floor(bar.endH)}:${String(Math.round((bar.endH % 1) * 60)).padStart(2, '0')}`}
-                        arrow
-                      >
+
+                  {/* タイムライン列 */}
+                  <Box
+                    sx={{
+                      gridColumn: '2 / -1', gridRow: ri + 2,
+                      position: 'relative',
+                      height: rowHeight,
+                      bgcolor: '#FFFFFF', borderBottom: TIMELINE_BORDER,
+                      boxSizing: 'border-box', minWidth: 0,
+                    }}
+                  >
+                    {/* グリッド縦線 */}
+                    <Box
+                      sx={{
+                        display: 'grid', gridTemplateColumns: 'repeat(24, 1fr)',
+                        position: 'absolute', inset: 0, pointerEvents: 'none',
+                      }}
+                    >
+                      {TIMELINE_HOUR_INDEXES.map((_, i) => (
                         <Box
-                          sx={{
-                            position: 'absolute',
-                            top: 6,
-                            bottom: 6,
-                            left,
-                            width,
-                            bgcolor: row.color,
-                            color: '#FFFFFF',
-                            borderRadius: '4px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            fontSize: '11px',
-                            fontWeight: 600,
-                            px: 0.5,
-                            overflow: 'hidden',
-                            whiteSpace: 'nowrap',
-                            cursor: 'default',
-                            opacity: 0.9,
-                            '&:hover': { opacity: 1 },
-                          }}
-                        >
-                          {bar.taskName}
-                        </Box>
-                      </Tooltip>
-                    );
-                  })}
-                </Box>
-              </Fragment>
-            ))}
+                          key={i}
+                          sx={{ borderRight: i < TIMELINE_HOUR_INDEXES.length - 1 ? TIMELINE_BORDER : 'none', boxSizing: 'border-box' }}
+                        />
+                      ))}
+                    </Box>
+
+                    {/* 時間帯バー（サブ行に分散して重なりを防ぐ） */}
+                    {subRows.flatMap((subRow, sri) =>
+                      subRow.map((bar) => {
+                        const clampedStart = Math.max(0, Math.min(TIMELINE_RANGE_TOTAL, bar.startH));
+                        const clampedEnd = Math.max(0, Math.min(TIMELINE_RANGE_TOTAL, bar.endH));
+                        if (clampedEnd <= clampedStart) return null;
+                        const left = `${(clampedStart / TIMELINE_RANGE_TOTAL) * 100}%`;
+                        const width = `${((clampedEnd - clampedStart) / TIMELINE_RANGE_TOTAL) * 100}%`;
+                        const top = sri * TIMELINE_SUBROW_HEIGHT + 5;
+                        const height = TIMELINE_SUBROW_HEIGHT - 10;
+                        return (
+                          <Tooltip
+                            key={bar.id}
+                            title={`${bar.taskName}　${fmtH(bar.startH)}〜${fmtH(bar.endH)}（クリックで編集）`}
+                            arrow
+                          >
+                            <Box
+                              onClick={() => onBarClick?.(row.largeId, row.smallId, bar.id)}
+                              sx={{
+                                position: 'absolute',
+                                top,
+                                height,
+                                left,
+                                width,
+                                bgcolor: row.color,
+                                color: '#FFFFFF',
+                                borderRadius: '4px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                fontSize: '11px',
+                                fontWeight: 600,
+                                px: 0.5,
+                                overflow: 'hidden',
+                                whiteSpace: 'nowrap',
+                                cursor: onBarClick ? 'pointer' : 'default',
+                                opacity: 0.9,
+                                '&:hover': { opacity: 1, boxShadow: '0 0 0 2px rgba(0,0,0,0.2)' },
+                              }}
+                            >
+                              {bar.taskName}
+                            </Box>
+                          </Tooltip>
+                        );
+                      })
+                    )}
+                  </Box>
+                </Fragment>
+              );
+            })}
           </Box>
         </Box>
       </Paper>
